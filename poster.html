@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>群聊日报 · 单图版 | ChatPoster</title>
+<style>
+  /* ===============================================================
+     群聊日报 · 单图版（宽固定 1080，高随内容）
+     ---------------------------------------------------------------
+     设计口径（design-taste-frontend）
+       Design Read：给老板群看的一页日报，手机上按全宽扫读，
+                    安静的黑底 + 等宽数字 + 唯一强调色（金）
+       Dials：VARIANCE 5 / MOTION 1 / DENSITY 5
+     硬约束：字号按「图」定尺（手机上全宽可读）、无辉光、无装饰网格、
+             单强调色、圆角全站一致、零破折号、中间点每行最多一个
+     圆角规则（唯一一档）：卡片 / 方框 12px（--r）；标签 4px；柱条 2px。
+             不再出现第四种圆角。
+     尺寸口径：宽固定 1080；高不设上限，内容多少就多长。
+             不用 line-clamp、不省略号 —— 信息完整优先于版面紧凑。
+     =============================================================== */
+  :root{
+    --paper:#0b0c0e;
+    --surface:#111318;
+    --ink:#ecedef;
+    --ink2:#9aa0a6;
+    --ink3:#666c74;
+    --rule:rgba(255,255,255,.11);
+    --rule2:rgba(255,255,255,.06);
+    --accent:#d9a24b;
+    --up:#e5534b;
+    --down:#2f9e63;
+    --flat:#30353c;
+    --r:12px;
+    --mono:ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+    --sans:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#191b1f}
+  body{font-family:var(--sans);display:flex;justify-content:center;align-items:flex-start}
+
+  .sheet{
+    width:1080px;flex:none;position:relative;
+    background:var(--paper);color:var(--ink);
+    padding:52px 52px 44px;display:flex;flex-direction:column;gap:20px;
+  }
+  .mono{font-family:var(--mono)}
+
+  /* ---------- 报头 ---------- */
+  .eyebrow{
+    display:flex;align-items:center;gap:14px;
+    font-family:var(--mono);font-size:20px;letter-spacing:.18em;color:var(--accent);
+  }
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule2)}
+  .eyebrow em{font-style:normal;font-size:17px;letter-spacing:.1em;color:var(--ink3)}
+  h1{font-size:47px;line-height:1.24;font-weight:800;letter-spacing:-.5px;margin:18px 0 12px}
+  .lede{font-size:26px;line-height:1.5;color:#b9bec5}
+  .lede b{color:var(--up);font-weight:600}
+  .lede s{color:var(--down);text-decoration:none}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:26px;margin-top:16px;padding-top:16px;
+    border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:19px;color:var(--ink3);
+  }
+  .meta b{color:var(--ink2);font-weight:500}
+
+  /* ---------- 四个指标 ---------- */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr)}
+  .metric{padding:0 20px;border-left:1px solid var(--rule2)}
+  .metric:first-child{padding-left:0;border-left:0}
+  .metric em{
+    display:block;font-family:var(--mono);font-style:normal;font-weight:700;
+    font-size:62px;line-height:1;letter-spacing:-2px;color:var(--ink);
+  }
+  .metric em i{font-size:19px;font-style:normal;font-weight:400;color:var(--ink3);margin-left:5px;letter-spacing:0}
+  .metric span{display:block;font-size:22px;color:var(--ink2);margin-top:12px}
+  .metric small{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:17px;color:var(--ink3);margin-top:9px;font-family:var(--mono)}
+  .metric small span{white-space:nowrap}
+  .metric.key em{color:var(--accent)}
+
+  /* ---------- 区块标题 ---------- */
+  .sec-head{display:flex;align-items:baseline;gap:14px;padding-bottom:12px;border-bottom:1px solid var(--rule);margin-bottom:16px}
+  .sec-head h2{font-size:29px;font-weight:700;letter-spacing:.01em}
+  .sec-head em{font-family:var(--mono);font-style:normal;font-size:18px;color:var(--ink3);margin-left:auto}
+
+  /* ---------- 24 小时曲线 ---------- */
+  .bars{display:flex;align-items:flex-end;gap:5px;height:88px}
+  .bars i{flex:1;display:block;min-height:4px;border-radius:3px 3px 0 0;background:var(--flat)}
+  .bars i.up{background:var(--up)}
+  .bars i.down{background:var(--down)}
+  .bars i.peak{outline:2px solid rgba(255,255,255,.6);outline-offset:2px}
+  .axis{display:flex;gap:5px;margin-top:8px}
+  .axis span{flex:1;text-align:center;font-family:var(--mono);font-size:15px;color:#4a5058}
+  .legend{margin-top:10px;font-family:var(--mono);font-size:17px;color:var(--ink3)}
+  .legend u{text-decoration:none;color:var(--up)}
+  .legend d{text-decoration:none;color:var(--down)}
+
+  /* ---------- 热门板块 ---------- */
+  /* 单列铺满：卡片高度各随内容，避免双列对齐留下大块空白 */
+  .topics{display:grid;grid-template-columns:1fr;gap:12px}
+  .topic{
+    border:1px solid var(--rule2);border-radius:var(--r);background:var(--surface);
+    padding:15px 17px 14px;display:flex;flex-direction:column;gap:9px;
+  }
+  .t-top{display:flex;align-items:center;gap:10px}
+  .t-tag{
+    font-family:var(--mono);font-size:17px;letter-spacing:.05em;color:var(--ink2);
+    border:1px solid var(--rule);border-radius:4px;padding:2px 9px;
+  }
+  .t-delta{font-family:var(--mono);font-size:19px;font-weight:700;margin-left:auto}
+  .t-delta.up{color:var(--up)} .t-delta.down{color:var(--down)}
+  .t-title{font-size:27px;font-weight:700;line-height:1.32;color:#f2f3f5}
+  .t-line{
+    /* 不做行数截断：日报的价值在信息完整，宁可图长一点也不省略 */
+    font-size:21px;line-height:1.5;color:var(--ink2);
+    white-space:normal;overflow-wrap:anywhere;
+  }
+  .rest{
+    margin-top:12px;font-family:var(--mono);font-size:17px;line-height:1.7;color:var(--ink3);
+  }
+  .rest b{color:var(--ink2);font-weight:500}
+
+  /* ---------- 群内分享（文件 / 链接） ---------- */
+  .shares{display:flex;flex-direction:column;gap:8px}
+  .sh{
+    border:1px solid var(--rule2);border-radius:var(--r);background:var(--surface);
+    padding:12px 15px;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    gap:5px 16px;align-items:baseline;
+  }
+  .sh .nm{font-size:21px;line-height:1.4;color:#f0f1f3;overflow-wrap:anywhere}
+  .sh .meta{font-family:var(--mono);font-size:16px;color:var(--ink3);white-space:nowrap}
+  .sh .sub{grid-column:1/-1;font-family:var(--mono);font-size:16px;color:var(--ink3)}
+  .sh .tagx{
+    font-family:var(--mono);font-size:15px;color:var(--acc);
+    border:1px solid rgba(217,162,75,.36);border-radius:4px;
+    padding:1px 7px;margin-right:9px;white-space:nowrap;
+  }
+
+  /* ---------- 底部：排行 + 金句 ---------- */
+  .bottom{display:grid;grid-template-columns:1.3fr 1fr;gap:30px;align-items:start}
+  .rank{display:flex;flex-direction:column;gap:12px}
+  .rk{display:grid;grid-template-columns:22px 1fr 54px;align-items:center;gap:13px}
+  .rk .n{font-family:var(--mono);font-size:18px;color:var(--ink3);text-align:right}
+  .rk .nm{font-size:23px;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+  .rk .nm s{text-decoration:none;font-family:var(--mono);font-size:16px;color:var(--ink3)}
+  .rk .track{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.08)}
+  .rk .track u{display:block;height:100%;border-radius:2px;background:var(--ink3);text-decoration:none}
+  .rk:first-child .track u{background:var(--accent)}
+  .rk .v{font-family:var(--mono);font-size:25px;font-weight:700;text-align:right}
+
+  .quote{
+    border:1px solid var(--rule2);border-left:3px solid var(--accent);border-radius:var(--r);
+    background:var(--surface);padding:18px 20px;
+  }
+  .quote .lb{display:block;font-family:var(--mono);font-size:16px;letter-spacing:.14em;color:var(--accent);margin-bottom:11px}
+  .quote p{font-size:26px;line-height:1.58;color:#e8e2d5}
+  .quote cite{display:block;font-style:normal;font-size:19px;color:var(--ink3);margin-top:13px}
+
+  /* ---------- 落款 ---------- */
+  .foot{
+    border-top:1px solid var(--rule);padding-top:15px;
+    display:flex;justify-content:space-between;gap:20px;
+    font-family:var(--mono);font-size:17px;color:var(--ink3);
+  }
+  .foot b{color:var(--ink2);font-weight:500}
+</style>
+</head>
+<body>
+<div class="sheet" id="sheet">
+
+  <header>
+    <div class="eyebrow mono"><span>群聊日报</span><em id="pFootStamp">daily digest</em></div>
+    <h1 id="pTitle">-</h1>
+    <p class="lede" id="pSub">-</p>
+    <div class="meta mono" id="pMeta"></div>
+  </header>
+
+  <div class="metrics" id="pStats"></div>
+
+  <section>
+    <div class="sec-head"><h2>活跃时段</h2><em id="pPeakNote">-</em></div>
+    <div class="bars" id="pChart"></div>
+    <div class="axis" id="pTick"></div>
+    <div class="legend mono">柱高 = 该小时消息量　<u>红 = 环比上涨</u>　<d>绿 = 环比回落</d></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>热门板块</h2><em id="pTopicNote">-</em></div>
+    <div class="topics" id="pTopics"></div>
+    <div class="rest mono" id="pRest"></div>
+  </section>
+
+  <section id="shareSec" style="display:none">
+    <div class="sec-head"><h2>群内分享</h2><em id="pShareNote">-</em></div>
+    <div class="shares" id="pShares"></div>
+    <div class="rest mono" id="pShareCounts"></div>
+  </section>
+
+  <section class="bottom">
+    <div>
+      <div class="sec-head"><h2>发言排行</h2><em id="pRankNote">-</em></div>
+      <div class="rank" id="pRank"></div>
+    </div>
+    <div>
+      <div class="sec-head"><h2>今日一句</h2><em>quote</em></div>
+      <blockquote class="quote" id="pQuote"></blockquote>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span><b>取数</b> 本机微信只读解密库（离线）　<b>口径</b> 仅群聊文本</span>
+    <span id="pFootDate">-</span>
+  </footer>
+
+</div>
+<div id="__fit" style="position:fixed;left:-9999px;top:0"></div>
+
+<script>
+/* =========================================================
+   数据契约 —— 与 index.html 完全一致；换数据即换报面
+   ========================================================= */
+/* >>> REPORT_DATA_START · 构建脚本 build.py 只替换这一段的字面量 <<< */
+const REPORT = {
+  meta: {
+    group: "示例 · AI 创业老板交流群",
+    date: "2026-09-10",
+    window: "11:00-12:00",
+    scope: "群聊文本",
+    range: "当日 00:00-23:59",
+    headline: '开盘｜<b>AI 应用与模型话题上涨</b>，<s>招聘 / 简历话题走低</s>'
+  },
+  stats: [
+    { key: "消息总量",   value: 389, unit: "条",  hi: true  },
+    { key: "活跃成员",   value: 45,  unit: "人",  hi: false },
+    { key: "话题提及",   value: 214, unit: "次",  hi: false },
+    { key: "待跟进线索", value: 9,   unit: "条",  hi: true  }
+  ],
+  signals: { reply: 3, promise: 3, opportunity: 2, revive: 1 },
+  hours: [0,1,0,0,2,3,4,8,15,24,32,52,33,26,28,25,18,15,15,19,22,24,16,7],
+  topics: [
+    { tag:"应用层", title:"GPT 类应用怎么提效、怎么切到自己的流量池",
+      mentions:41, delta:0.06,
+      summary:["视频号起号到私域的完整链路被反复拆解，卖书是最低成本的验证品。",
+               "有人把企业版当交付底座，先把客户流程跑通，再谈模型选型。",
+               "群里共识：先跑通一条链路，跑不通就别急着上模型。"] },
+    { tag:"模型之争", title:"开源与闭源模型的成本分叉点到底在哪",
+      mentions:28, delta:0.12,
+      summary:["围绕推理成本与私有化部署的取舍展开，重点在长期单价而非首月账单。",
+               "有人实测同一批任务，云端 API 与本地推理的拐点出现在日均调用量上来之后。",
+               "结论偏中性：数据敏感度决定路线，成本只决定规模上限。"] },
+    { tag:"工具链", title:"n8n / Coze / Dify 选型与落地踩坑",
+      mentions:23, delta:0.07,
+      summary:["编排型工具适合流程固定的场景，需要复杂判断的环节仍然要落到代码。",
+               "多人提到同一个坑：工作流一旦超过三层嵌套，维护成本陡增。",
+               "建议做法是先把流程画在纸上，再选工具，不要反过来。"] },
+    { tag:"增长", title:"矩阵号起号与二次分发",
+      mentions:21, delta:0.05,
+      summary:["一份内容多平台改写的边际成本被压到很低，但平台判定重复的阈值在收紧。",
+               "有人用同一套素材在三个平台跑出完全不同的数据，结论是要分别调前 3 秒。",
+               "群内共识：分发不是复制粘贴，是重做开头。"] },
+    { tag:"变现", title:"企业版线索到底从哪来", mentions:18, delta:0.12,
+      summary:["围绕获客渠道做了一轮枚举：老客户复购、同行转介、内容获客三条被标记为可持续。"] },
+    { tag:"出海", title:"海外收款与合规的实操细节", mentions:16, delta:0.05,
+      summary:["收款通道、主体结构、税务申报三件事被逐条拆开。"] },
+    { tag:"基建", title:"本地私有化部署与云端 API 的边界", mentions:15, delta:-0.01,
+      summary:["有观点认为本地推理解决的是合规问题，不是省钱问题。"] },
+    { tag:"招聘", title:"招人最要紧的是能不能立刻上手", mentions:13, delta:-0.02,
+      summary:["对简历里的方法论普遍不感兴趣，更关心交付过什么。"] },
+    { tag:"内容", title:"口播脚本的前 3 秒钩子怎么设计", mentions:12, delta:0.09,
+      summary:["有效钩子集中在三类：反常识结论、明确收益、身份代入。"] },
+    { tag:"硬件", title:"一体机与本地推理的真实体验", mentions:11, delta:0.04,
+      summary:["结论：硬件不是入场门槛，需求才是。"] },
+    { tag:"运营", title:"群运营的自动化边界在哪", mentions:9, delta:-0.02,
+      summary:["自动化只做重复动作，判断和关系维护必须留给人。"] },
+    { tag:"认知", title:"AI 时代的个人壁垒到底剩什么", mentions:7, delta:0.09,
+      summary:["会提问的人，比会用工具的人稀缺。"] }
+  ],
+  ranking: [
+    { name:"老陈·工厂数字化", msgs:53 },
+    { name:"forget",           msgs:38 },
+    { name:"小满",             msgs:27 },
+    { name:"Pycpp",            msgs:26 },
+    { name:"明哥",             msgs:24 },
+    { name:"ZHX01",            msgs:19 }
+  ],
+  quote: {
+    label:"今日一句",
+    text:"「不是没钱，是老板要看到能落到人效上的东西。」",
+    from:"—— 老陈·工厂数字化"
+  },
+  shares: {
+    counts: { image: 34, emoji: 12, link: 3, file: 2, miniprogram: 2, video: 1 },
+    files: [
+      { name:"客户跟进话术模板 v3.pdf", size:1048576*2.4, who:"小满", ts:1757500000 },
+      { name:"社群运营 SOP.xlsx",       size:1048576*0.6, who:"明哥", ts:1757503600 }
+    ],
+    links: [
+      { name:"从 0 到 1 跑通一条交付链路的完整复盘", url:"mp.weixin.qq.com", who:"老陈·工厂数字化", ts:1757507200 },
+      { name:"开源模型私有化部署的成本实测",       url:"zhuanlan.zhihu.com", who:"Pycpp",          ts:1757510800 }
+    ]
+  }
+};
+/* <<< REPORT_DATA_END <<< */
+
+/* =========================================================
+   渲染层：结构 → 视图。单图版每处都设上限，超出的直接截断，
+   保证一页装得下、不溢出。
+   ========================================================= */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;" }[c]));
+const stripDash = (s) => String(s).replace(/^[\s—–\-]+/, "");   // 破折号在本版式里禁用
+const fmtSize = (n) => !n ? "" : (n >= 1048576 ? (n / 1048576).toFixed(1) + " MB"
+  : n >= 1024 ? Math.round(n / 1024) + " KB" : n + " B");
+const tOf = (ts) => {
+  const d = new Date(ts * 1000), p = (x) => String(x).padStart(2, "0");
+  return p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+};
+
+const TOP_N  = 99;  // 热门板块：全部展开。不设上限 —— 信息完整优先于图长
+const RANK_N = 99;  // 发言排行：全部列出
+
+function render() {
+  const m = REPORT.meta;
+
+  /* 报头 */
+  $("pTitle").textContent = m.group;
+  $("pSub").innerHTML = m.headline;
+  $("pMeta").innerHTML = [["日期", m.date], ["时间窗", m.window], ["统计范围", m.range], ["口径", m.scope]]
+    .map(([k, v]) => `<span>${k} <b>${esc(v)}</b></span>`).join("");
+  $("pFootDate").textContent = m.date;
+
+  /* 指标 */
+  $("pStats").innerHTML = REPORT.stats.map((s, i) => {
+    const sig = REPORT.signals || {};
+    const extra = (i === 3 && sig.reply !== undefined)
+      ? `<small><span>待回复 ${sig.reply}</span><span>承诺 ${sig.promise}</span>` +
+        `<span>商机 ${sig.opportunity}</span><span>复联 ${sig.revive}</span></small>` : "";
+    return `<div class="metric${s.hi ? " key" : ""}">
+      <em>${s.value.toLocaleString()}<i>${esc(s.unit)}</i></em>
+      <span>${esc(s.key)}</span>${extra}</div>`;
+  }).join("");
+
+  /* 24 小时曲线 */
+  const hours = REPORT.hours;
+  const max = Math.max.apply(null, hours);
+  const peak = hours.indexOf(max);
+  $("pPeakNote").textContent = `峰值 ${max} 条/小时　落在 ${String(peak).padStart(2, "0")}:00`;
+  $("pChart").innerHTML = hours.map((v, i) => {
+    const prev = i > 0 ? hours[i - 1] : v;
+    const dir = v === prev ? "" : (v > prev ? " up" : " down");
+    const pk = i === peak ? " peak" : "";
+    return `<i class="${dir}${pk}" style="height:${Math.max(4, Math.round(v / max * 100))}%" title="${i}:00 ${v} 条"></i>`;
+  }).join("");
+  $("pTick").innerHTML = hours.map((v, i) => `<span>${i % 4 === 0 ? String(i).padStart(2, "0") : ""}</span>`).join("");
+
+  /* 热门板块 */
+  const sorted = REPORT.topics.slice().sort((a, b) => b.mentions - a.mentions);
+  const top = sorted.slice(0, TOP_N);
+  const rest = sorted.slice(TOP_N);
+  const totalMentions = REPORT.topics.reduce((a, t) => a + t.mentions, 0);
+  $("pTopicNote").textContent = `按提及量　共 ${REPORT.topics.length} 个话题`;
+  $("pTopics").innerHTML = top.map(t => {
+    const up = t.delta >= 0, pct = Math.abs(Math.round(t.delta * 100));
+    const share = (t.mentions / totalMentions * 100).toFixed(1);
+    return `<div class="topic">
+      <div class="t-top">
+        <span class="t-tag mono">${esc(t.tag)}</span>
+        <span class="t-delta mono ${up ? "up" : "down"}">${up ? "+" : "-"}${pct}%</span>
+      </div>
+      <div class="t-title">${esc(t.title)}</div>
+      ${(t.summary || []).map(s => `<div class="t-line">${esc(s)}</div>`).join("")}
+      <div class="t-tag mono" style="border:0;padding:0;color:#5a6068">提及 ${t.mentions} 次　占 ${share}%</div>
+    </div>`;
+  }).join("");
+  $("pRest").innerHTML = rest.length
+    ? `<b>其余话题</b>　` + rest.map(t => `${esc(t.tag)} ${t.mentions}`).join("　")
+    : "";
+
+  /* 群内分享：文件与链接（只列名字与大小，不涉内容） */
+  const SH = REPORT.shares || {};
+  const sFiles = SH.files || [], sLinks = SH.links || [], sCnt = SH.counts || {};
+  if (sFiles.length || sLinks.length || Object.keys(sCnt).length) {
+    $("shareSec").style.display = "";
+    const rows = [];
+    for (const f of sFiles) {
+      rows.push(`<div class="sh">
+        <div class="nm"><span class="tagx">文件</span>${esc(f.name)}</div>
+        <div class="meta">${fmtSize(f.size)}</div>
+        <div class="sub">${esc(f.who)}　${tOf(f.ts)}</div></div>`);
+    }
+    for (const l of sLinks) {
+      rows.push(`<div class="sh">
+        <div class="nm"><span class="tagx">链接</span>${esc(l.name)}</div>
+        <div class="meta">${esc(l.url || "")}</div>
+        <div class="sub">${esc(l.who)}　${tOf(l.ts)}</div></div>`);
+    }
+    $("pShares").innerHTML = rows.join("");
+    $("pShareNote").textContent = `文件 ${sFiles.length}　链接 ${sLinks.length}`;
+    const NAME = { image: "图片", video: "视频", emoji: "表情", redpacket: "红包",
+                   channels: "视频号", miniprogram: "小程序", chatrecord: "合并转发",
+                   music: "音乐", location: "位置", transfer: "转账" };
+    const other = Object.keys(sCnt).filter(k => NAME[k])
+      .map(k => `${NAME[k]} ${sCnt[k]}`).join("　");
+    $("pShareCounts").innerHTML = other ? `<b>另有</b>　${esc(other)}` : "";
+  }
+
+  /* 发言排行 */
+  const rank = REPORT.ranking.slice(0, RANK_N);
+  const totalMsgs = REPORT.stats[0].value, rankMax = rank[0].msgs;
+  $("pRankNote").textContent = `按消息数 Top ${rank.length}`;
+  $("pRank").innerHTML = rank.map((r, i) => `<div class="rk">
+      <span class="n mono">${i + 1}</span>
+      <div>
+        <div class="nm"><span>${esc(r.name)}</span><s>${(r.msgs / totalMsgs * 100).toFixed(1)}%</s></div>
+        <span class="track"><u style="width:${Math.round(r.msgs / rankMax * 100)}%"></u></span>
+      </div>
+      <span class="v mono">${r.msgs}</span>
+    </div>`).join("");
+
+  /* 金句 */
+  $("pQuote").innerHTML =
+    `<span class="lb mono">${esc(REPORT.quote.label)}</span>
+     <p>${esc(REPORT.quote.text)}</p>
+     <cite>${esc(stripDash(REPORT.quote.from))}</cite>`;
+}
+render();
+
+/* 自检：宽度固定、高度随内容走。把实际高度写进 DOM，供构建脚本据此截图 */
+(function () {
+  const s = document.getElementById("sheet");
+  const h = Math.ceil(s.getBoundingClientRect().height);
+  document.getElementById("__fit").textContent = "H " + h + " W " + s.clientWidth;
+})();
+</script>
+</body>
+</html>

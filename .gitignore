@@ -1,0 +1,57 @@
+# ============================================================
+# chatposter · .gitignore
+# 这个仓库从不上传任何真实聊天数据。下面分三道防线。
+# ============================================================
+
+# ---------- 第一道：解密产物与密钥（最高敏感，绝对不能进库）----------
+out/wx_plain/
+out/wx_dump/
+out/wx_keys.json
+_archive/
+
+# 本机工作区元数据：含真实群 id、wxid、密钥片段，绝不入库
+.workbuddy/
+
+# 任何位置出现的密钥文件
+**/keys.json
+**/all_keys.json
+**/passphrase.json
+**/wxkeys.txt
+**/*_keys.json
+
+# ---------- 第二道：真实群的产出（含群友昵称与聊天内容）----------
+# 出图、导出稿、分析 JSON 一律不进库；仓库里只留 *.sample.*
+out/daily-*
+out/report-*
+data/analysis-*.json
+
+# 反过来放行示例文件
+!data/analysis.sample.json
+!docs/demo.png
+
+# ---------- 第三道：数据库与运行时垃圾 ----------
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# ---------- 临时文件 ----------
+_tmp/
+*.log

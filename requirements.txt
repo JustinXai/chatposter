@@ -1,0 +1,12 @@
+# ChatPoster · 依赖
+# 渲染层（build.py + poster.html）只用标准库，不需要下面任何一项。
+# 解密层与挂件需要下列依赖。
+
+# 解密 SQLCipher 4（tools/decrypt_db.py 必需）
+pycryptodome>=3.19
+
+# 解压非文本消息（文件/链接/小程序）。不装的话"群内分享"板块会空掉）
+zstandard>=0.22
+
+# 截图后按底色裁掉多余留白（可选，不装也能出图）
+pillow>=10.0
