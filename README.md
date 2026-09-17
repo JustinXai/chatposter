@@ -10,7 +10,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)](#-怎么用)
 [![WeChat](https://img.shields.io/badge/WeChat-4.x-07c160)](#-常见问题)
 
-<img src="docs/demo-gold.png" alt="群聊日报图" width="420">
+<img src="docs/demo-hero.png" alt="群聊日报图" width="420">
 
 </div>
 
@@ -52,12 +52,6 @@ ChatPoster 帮你把一天的消息读完，压成一张图。
 <table>
 <tr>
 <td align="center" width="33%" valign="top">
-<img src="docs/demo-gold.png" alt="暗夜鎏金"><br>
-<b>暗夜鎏金</b><br>
-<code>gold</code> · 默认<br>
-<sub>黑底金线，等宽字<br>密、硬、像数据终端<br>适合科技群、晚上看</sub>
-</td>
-<td align="center" width="33%" valign="top">
 <img src="docs/demo-kawaii.png" alt="奶油卡通"><br>
 <b>奶油卡通</b><br>
 <code>kawaii</code><br>
@@ -68,6 +62,12 @@ ChatPoster 帮你把一天的消息读完，压成一张图。
 <b>办公科技</b><br>
 <code>tech</code><br>
 <sub>白底蓝灰，细线，无投影<br>像企业后台仪表盘<br>适合工作群、对外汇报</sub>
+</td>
+<td align="center" width="33%" valign="top">
+<img src="docs/demo-gold.png" alt="暗夜鎏金"><br>
+<b>暗夜鎏金</b><br>
+<code>gold</code> · 默认<br>
+<sub>黑底金线，等宽字<br>密、硬、像数据终端<br>适合科技群、晚上看</sub>
 </td>
 </tr>
 </table>

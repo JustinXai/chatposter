@@ -7,6 +7,7 @@
     docs/demo-gold.png     暗夜鎏金（默认）· 数据终端感
     docs/demo-kawaii.png   奶油卡通 · 手账贴纸感
     docs/demo-tech.png     办公科技 · 蓝白仪表盘
+    docs/demo-hero.png     README 首图，取 tech 主题的上半屏（避免与三图表格重复）
 
 数据全部是模板内置的虚构示例，不含任何真实聊天内容。
 """
@@ -115,6 +116,16 @@ def main():
         png = os.path.join(DOCS, name)
         size = shoot(hp, png, chrome, bg)
         print("  [%s] %-20s %s" % (theme, name, size))
+        if theme == "tech":
+            # README 首图单独截一份上半屏，避免和三图表格里的 demo-tech.png 重复
+            hero = os.path.join(DOCS, "demo-hero.png")
+            try:
+                from PIL import Image
+                im = Image.open(png)
+                im.crop((0, 0, im.width, min(1180, im.height))).save(hero)
+                print("  [hero] %-20s %s" % ("demo-hero.png", Image.open(hero).size))
+            except Exception as e:
+                print("  hero 截取跳过:", e)
         os.remove(hp)
 
     os.remove(jp)
