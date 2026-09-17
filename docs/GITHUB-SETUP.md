@@ -82,7 +82,7 @@ chatposter
 | 设置项 | 建议值 | 说明 |
 |---|---|---|
 | Releases | 建议发一个 `v0.1.0` | 有 Release 的项目在搜索结果里权重略高 |
-| Social preview | 上传 `docs/demo.png` | 分享到群里/社交平台时的缩略图，**转化率影响极大** |
+| Social preview | 上传 `docs/demo-tech.png` | 分享到群里/社交平台时的缩略图，**转化率影响极大**（蓝白科技风最适合对外） |
 | Issues | 开启 | 缺省即可 |
 | Discussions | 可选开启 | 有人问问题会沉淀内容，对搜索有帮助 |
 | Wiki | 关闭 | 无内容时开着显得空 |

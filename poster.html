@@ -8,92 +8,151 @@
   /* ===============================================================
      群聊日报 · 单图版（宽固定 1080，高随内容）
      ---------------------------------------------------------------
-     三套主题，靠 <html data-theme="..."> 切换：
-       gold   暗夜鎏金（默认）—— 安静的黑底，唯一强调色是金
-       paper  晨光纸感            —— 浅色纸面，墨蓝强调，适合白天看/打印
-       crimson 深红夜航           —— 酒红黑底，暖红强调，适合社群/电商
+     三套主题，靠 <html data-theme="..."> 切换。三套是三种「性格」，
+     不只是换颜色 —— 字体、圆角、描边、投影、间距、装饰全部跟着变：
+       gold   暗夜鎏金（默认）—— 数据终端感：黑底，直角硬边，密集，等宽字为主
+       kawaii 奶油卡通            —— 手账贴纸感：奶油底，超大圆角，粗描边，厚投影
+       tech   办公科技            —— 仪表盘感：白底，蓝灰细线，几何切角，蓝色顶条
+
      换主题只需改 <html> 上一个属性，其余一律不动。
+     主题通过变量控制**两大口径**：
+       · 颜色 / 字体 / 圆角 / 描边 / 投影 —— 全部变量化
+       · 版式性格（密度、对齐、装饰） —— 靠 data-theme 选择器做定向覆盖
 
      设计口径（design-taste-frontend）
        Design Read：给老板群看的一页日报，手机上按全宽扫读
        Dials：VARIANCE 5 / MOTION 1 / DENSITY 5
-     硬约束：字号按「图」定尺（手机上全宽可读）、无辉光、无装饰网格、
-             单强调色、圆角全站一致、零破折号、中间点每行最多一个
-     圆角规则（唯一一档）：卡片 / 方框 12px（--r）；标签 4px；柱条 2px。
-             不再出现第四种圆角。
+     硬约束：字号按「图」定尺（手机上全宽可读）、零破折号、中间点每行最多一个
      尺寸口径：宽固定 1080；高不设上限，内容多少就多长。
              不用 line-clamp、不省略号 —— 信息完整优先于版面紧凑。
      =============================================================== */
-  /* ---------- 主题：暗夜鎏金（默认） ---------- */
+  /* ---------- 主题：暗夜鎏金（默认）· 数据终端 ---------- */
   :root{
+    /* 底色与四级文字 */
     --paper:#0b0c0e;
     --surface:#111318;
     --ink:#ecedef;
     --ink2:#9aa0a6;
     --ink3:#666c74;
+    /* 描边与分隔 */
     --rule:rgba(255,255,255,.11);
     --rule2:rgba(255,255,255,.06);
+    --border:1px solid var(--rule2);          /* 卡片 / 行 的默认描边 */
+    --hatch:rgba(255,255,255,.03);            /* 顶栏 / 头条 的底纹 */
+    /* 语义色 */
     --accent:#d9a24b;
     --up:#e5534b;
     --down:#2f9e63;
     --flat:#30353c;
+    /* 主题专属文字（必须逐主题给，否则浅底上直接消失） */
     --page:#191b1f;                      /* 图外底色，裁边时按它判断 */
-    --t-title:#f2f3f5;
-    --t-strong:#f0f1f3;
-    --t-lede:#b9bec5;
-    --t-quote:#e8e2d5;
-    --r:12px;
+    --t-title:#f2f3f5;                   /* h1 / 话题标题 */
+    --t-strong:#f0f1f3;                  /* 分享条目标题 */
+    --t-lede:#b9bec5;                    /* 一句话总结 */
+    --t-quote:#e8e2d5;                   /* 今日一句 */
+    /* 版式性格：圆角 / 投影 / 字体 / 间距 */
+    --r:12px;                            /* 卡片圆角 */
+    --r-tag:4px;                         /* 标签圆角 */
+    --r-sheet:0;                         /* 整张报的圆角 */
+    --r-bar:3px 3px 0 0;                 /* 柱条圆角 */
+    --shadow:none;                       /* 卡片投影 */
+    --shadow-sheet:none;                 /* 整张报投影 */
+    --title-fam:inherit;                 /* h1 字体 */
+    --num:var(--mono);                   /* 大数字字体 */
+    --pad-sheet:52px 52px 44px;          /* 报面内边距 */
+    --gap-sheet:20px;                    /* 报面纵向节奏 */
+    --pad-card:15px 17px 14px;           /* 卡片内边距 */
+    --accent-w:1px;                      /* 强调边宽（用于 quote 左条） */
     --mono:ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
     --sans:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
   }
 
-  /* ---------- 主题：晨光纸感 ---------- */
-  html[data-theme="paper"]{
-    --paper:#f7f4ee;
-    --surface:#fffdf9;
-    --ink:#242322;
-    --ink2:#5d5a55;
-    --ink3:#96918a;
-    --rule:rgba(36,35,34,.14);
-    --rule2:rgba(36,35,34,.08);
-    --accent:#2f5d8a;                    /* 墨蓝 */
-    --up:#c0483c;
-    --down:#2b7a52;
-    --flat:#d9d3c8;
-    --page:#e8e3da;
-    --t-title:#1c1b1a;
-    --t-strong:#1f1e1d;
-    --t-lede:#4a4744;
-    --t-quote:#2a3d52;
+  /* ---------- 主题：奶油卡通 · 手账贴纸 ---------- */
+  html[data-theme="kawaii"]{
+    --paper:#fff7ef;                     /* 奶油底 */
+    --surface:#ffffff;
+    --ink:#3d3630;
+    --ink2:#7b6d63;
+    --ink3:#a99a8e;
+    --rule:#f0dcc6;
+    --rule2:#f4e4d2;
+    --border:2px solid #f0d9bd;          /* 粗描边 —— 卡通的核心手感 */
+    --hatch:#ffeccf;
+    --accent:#ff8a3d;                    /* 蜜橘 */
+    --up:#f4645c;
+    --down:#57b98a;
+    --flat:#ffe2c4;
+    --page:#fbeade;                      /* 图外底色（裁边按它判断） */
+    --t-title:#332c26;
+    --t-strong:#332c26;
+    --t-lede:#6d6055;
+    --t-quote:#7a3f16;
+    /* 版式：大圆角 + 厚实投影 + 圆润字体 */
+    --r:26px;
+    --r-tag:999px;                       /* 药丸标签 */
+    --r-sheet:34px;
+    --r-bar:12px 12px 0 0;               /* 圆头柱条 */
+    --shadow:0 5px 0 #f2dcc0;
+    --shadow-sheet:0 16px 0 rgba(214,188,158,.55);
+    --title-fam:"PingFang SC","HYQiHei","Zen Maru Gothic","Yuanti SC",
+                "Microsoft YaHei",system-ui,sans-serif;
+    --num:"Varela Round","Quicksand",ui-rounded,"PingFang SC",
+          "Microsoft YaHei",system-ui,sans-serif;
+    --pad-sheet:46px 46px 50px;
+    --gap-sheet:22px;
+    --pad-card:18px 20px 17px;
+    --accent-w:4px;
   }
 
-  /* ---------- 主题：深红夜航 ---------- */
-  html[data-theme="crimson"]{
-    --paper:#160c0e;
-    --surface:#1f1215;
-    --ink:#f3e9ea;
-    --ink2:#a88f93;
-    --ink3:#77605f;
-    --rule:rgba(255,235,235,.13);
-    --rule2:rgba(255,235,235,.07);
-    --accent:#e2604a;                    /* 暖红 */
-    --up:#f0685c;
-    --down:#3f9e6d;
-    --flat:#3a2629;
-    --page:#2a1418;
-    --t-title:#faf1f1;
-    --t-strong:#f7ecec;
-    --t-lede:#c9aeb1;
-    --t-quote:#f6e0d8;
+  /* ---------- 主题：办公科技 · 蓝白仪表盘 ---------- */
+  html[data-theme="tech"]{
+    --paper:#ffffff;
+    --surface:#f5f8fc;
+    --ink:#0f1f38;
+    --ink2:#4f6480;
+    --ink3:#8d9db2;
+    --rule:#d8e2ef;
+    --rule2:#e8eef6;
+    --border:1px solid #d8e2ef;          /* 细线 —— 仪表盘的关键 */
+    --hatch:#eef4fd;
+    --accent:#1667d1;                    /* 科技蓝 */
+    --up:#d93a38;
+    --down:#12925f;
+    --flat:#dbe5f1;
+    --page:#dde6f1;                      /* 图外底色（裁边按它判断） */
+    --t-title:#0f1f38;
+    --t-strong:#16294a;
+    --t-lede:#4f6480;
+    --t-quote:#0b3f8f;
+    /* 版式：小圆角 + 细线 + 无投影 + 几何字 */
+    --r:9px;
+    --r-tag:4px;
+    --r-sheet:0;
+    --r-bar:0;                           /* 方头柱条 —— 图表感 */
+    --shadow:0 1px 2px rgba(22,80,160,.06);
+    --shadow-sheet:0 1px 4px rgba(15,31,56,.10);
+    --title-fam:"HarmonyOS Sans SC","Source Han Sans SC","Noto Sans SC",
+                "Microsoft YaHei",system-ui,sans-serif;
+    --num:"DIN Alternate","Bahnschrift","HarmonyOS Sans SC","Microsoft YaHei",
+          system-ui,sans-serif;
+    --pad-sheet:44px 46px 40px;
+    --gap-sheet:18px;
+    --pad-card:14px 16px 13px;
+    --accent-w:3px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--page)}
   body{font-family:var(--sans);display:flex;justify-content:center;align-items:flex-start}
 
   .sheet{
-    width:1080px;flex:none;position:relative;
+    width:1080px;flex:none;position:relative;overflow:hidden;
     background:var(--paper);color:var(--ink);
-    padding:52px 52px 44px;display:flex;flex-direction:column;gap:20px;
+    border-radius:var(--r-sheet);box-shadow:var(--shadow-sheet);
+    padding:var(--pad-sheet);display:flex;flex-direction:column;gap:var(--gap-sheet);
+  }
+  /* 顶栏色带：默认透明，卡通风 / 科技风在这里各显性格 */
+  .sheet::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:0;background:transparent;
   }
   .mono{font-family:var(--mono)}
 
@@ -104,7 +163,8 @@
   }
   .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule2)}
   .eyebrow em{font-style:normal;font-size:17px;letter-spacing:.1em;color:var(--ink3)}
-  h1{font-size:47px;line-height:1.24;font-weight:800;letter-spacing:-.5px;margin:18px 0 12px}
+  h1{font-size:47px;line-height:1.24;font-weight:800;letter-spacing:-.5px;margin:18px 0 12px;
+     font-family:var(--title-fam)}
   .lede{font-size:26px;line-height:1.5;color:var(--t-lede)}
   .lede b{color:var(--up);font-weight:600}
   .lede s{color:var(--down);text-decoration:none}
@@ -120,7 +180,7 @@
   .metric{padding:0 20px;border-left:1px solid var(--rule2)}
   .metric:first-child{padding-left:0;border-left:0}
   .metric em{
-    display:block;font-family:var(--mono);font-style:normal;font-weight:700;
+    display:block;font-family:var(--num);font-style:normal;font-weight:700;
     font-size:62px;line-height:1;letter-spacing:-2px;color:var(--ink);
   }
   .metric em i{font-size:19px;font-style:normal;font-weight:400;color:var(--ink3);margin-left:5px;letter-spacing:0}
@@ -136,7 +196,7 @@
 
   /* ---------- 24 小时曲线 ---------- */
   .bars{display:flex;align-items:flex-end;gap:5px;height:88px}
-  .bars i{flex:1;display:block;min-height:4px;border-radius:3px 3px 0 0;background:var(--flat)}
+  .bars i{flex:1;display:block;min-height:4px;border-radius:var(--r-bar);background:var(--flat)}
   .bars i.up{background:var(--up)}
   .bars i.down{background:var(--down)}
   .bars i.peak{outline:2px solid var(--ink2);outline-offset:2px}
@@ -150,17 +210,19 @@
   /* 单列铺满：卡片高度各随内容，避免双列对齐留下大块空白 */
   .topics{display:grid;grid-template-columns:1fr;gap:12px}
   .topic{
-    border:1px solid var(--rule2);border-radius:var(--r);background:var(--surface);
-    padding:15px 17px 14px;display:flex;flex-direction:column;gap:9px;
+    border:var(--border);border-radius:var(--r);background:var(--surface);
+    box-shadow:var(--shadow);
+    padding:var(--pad-card);display:flex;flex-direction:column;gap:9px;
   }
   .t-top{display:flex;align-items:center;gap:10px}
   .t-tag{
     font-family:var(--mono);font-size:17px;letter-spacing:.05em;color:var(--ink2);
-    border:1px solid var(--rule);border-radius:4px;padding:2px 9px;
+    border:1px solid var(--rule);border-radius:var(--r-tag);padding:2px 9px;
   }
-  .t-delta{font-family:var(--mono);font-size:19px;font-weight:700;margin-left:auto}
+  .t-delta{font-family:var(--num);font-size:19px;font-weight:700;margin-left:auto}
   .t-delta.up{color:var(--up)} .t-delta.down{color:var(--down)}
-  .t-title{font-size:27px;font-weight:700;line-height:1.32;color:var(--t-title)}
+  .t-title{font-size:27px;font-weight:700;line-height:1.32;color:var(--t-title);
+           font-family:var(--title-fam)}
   .t-line{
     /* 不做行数截断：日报的价值在信息完整，宁可图长一点也不省略 */
     font-size:21px;line-height:1.5;color:var(--ink2);
@@ -174,16 +236,19 @@
   /* ---------- 群内分享（文件 / 链接） ---------- */
   .shares{display:flex;flex-direction:column;gap:8px}
   .sh{
-    border:1px solid var(--rule2);border-radius:var(--r);background:var(--surface);
+    border:var(--border);border-radius:var(--r);background:var(--surface);
+    box-shadow:var(--shadow);
     padding:12px 15px;display:grid;grid-template-columns:minmax(0,1fr) auto;
     gap:5px 16px;align-items:baseline;
   }
-  .sh .nm{font-size:21px;line-height:1.4;color:var(--t-strong);overflow-wrap:anywhere}
+  .sh .nm{font-size:21px;line-height:1.4;color:var(--t-strong);overflow-wrap:anywhere;
+          font-family:var(--title-fam)}
   .sh .meta{font-family:var(--mono);font-size:16px;color:var(--ink3);white-space:nowrap}
   .sh .sub{grid-column:1/-1;font-family:var(--mono);font-size:16px;color:var(--ink3)}
   .sh .tagx{
-    font-family:var(--mono);font-size:15px;color:var(--acc);
-    border:1px solid rgba(217,162,75,.36);border-radius:4px;
+    font-family:var(--mono);font-size:15px;color:var(--accent);
+    border:1px solid color-mix(in srgb,var(--accent) 36%,transparent);
+    border-radius:var(--r-tag);
     padding:1px 7px;margin-right:9px;white-space:nowrap;
   }
 
@@ -197,14 +262,14 @@
   .rk .track{display:block;height:4px;border-radius:2px;background:var(--rule2)}
   .rk .track u{display:block;height:100%;border-radius:2px;background:var(--ink3);text-decoration:none}
   .rk:first-child .track u{background:var(--accent)}
-  .rk .v{font-family:var(--mono);font-size:25px;font-weight:700;text-align:right}
+  .rk .v{font-family:var(--num);font-size:25px;font-weight:700;text-align:right}
 
   .quote{
-    border:1px solid var(--rule2);border-left:3px solid var(--accent);border-radius:var(--r);
-    background:var(--surface);padding:18px 20px;
+    border:var(--border);border-left:var(--accent-w) solid var(--accent);border-radius:var(--r);
+    background:var(--surface);box-shadow:var(--shadow);padding:18px 20px;
   }
   .quote .lb{display:block;font-family:var(--mono);font-size:16px;letter-spacing:.14em;color:var(--accent);margin-bottom:11px}
-  .quote p{font-size:26px;line-height:1.58;color:var(--t-quote)}
+  .quote p{font-size:26px;line-height:1.58;color:var(--t-quote);font-family:var(--title-fam)}
   .quote cite{display:block;font-style:normal;font-size:19px;color:var(--ink3);margin-top:13px}
 
   /* ---------- 落款 ---------- */
@@ -214,6 +279,89 @@
     font-family:var(--mono);font-size:17px;color:var(--ink3);
   }
   .foot b{color:var(--ink2);font-weight:500}
+
+  /* ===============================================================
+     主题的「版式性格」层
+     颜色 / 字体 / 圆角已由上方的变量做完，这里只做**尺寸与装饰**的
+     定向覆盖 —— 这才是三套主题看起来完全不像同一张图的原因。
+     =============================================================== */
+
+  /* ---------- 奶油卡通：手账贴纸 ---------- */
+  html[data-theme="kawaii"] .sheet{padding-top:64px}
+  html[data-theme="kawaii"] .sheet::before{
+    height:14px;background:var(--hatch);
+    border-bottom:2px solid #f0d9bd;
+  }
+  /* 报头：虚线分隔 + 圆润的字 */
+  html[data-theme="kawaii"] .eyebrow{font-size:19px;letter-spacing:.06em;font-weight:700}
+  html[data-theme="kawaii"] .eyebrow::after{
+    height:2px;background:none;border-top:3px dotted #f0d9bd;
+  }
+  html[data-theme="kawaii"] h1{font-size:49px;font-weight:800;letter-spacing:0}
+  html[data-theme="kawaii"] .meta{border-top:2px dashed #f0d9bd}
+  /* 区块标题：加一枚小圆点当"贴纸钉" */
+  html[data-theme="kawaii"] .sec-head{border-bottom:0;padding-bottom:6px}
+  html[data-theme="kawaii"] .sec-head h2{font-size:30px;font-family:var(--title-fam)}
+  html[data-theme="kawaii"] .sec-head h2::before{
+    content:"";display:inline-block;width:14px;height:14px;border-radius:50%;
+    background:var(--accent);margin-right:11px;vertical-align:-1px;
+  }
+  /* 卡片：粗描边 + 实心投影，按下贴纸的手感 */
+  html[data-theme="kawaii"] .topic,
+  html[data-theme="kawaii"] .sh,
+  html[data-theme="kawaii"] .quote{background:var(--surface)}
+  html[data-theme="kawaii"] .t-tag{
+    border:0;background:var(--hatch);padding:4px 13px;font-weight:700;
+  }
+  html[data-theme="kawaii"] .t-delta{font-size:20px}
+  html[data-theme="kawaii"] .bars{height:84px}
+  html[data-theme="kawaii"] .bars i{box-shadow:0 -2px 0 rgba(0,0,0,.05) inset}
+  html[data-theme="kawaii"] .rk .track{height:9px;border-radius:999px}
+  html[data-theme="kawaii"] .rk .track u{border-radius:999px}
+  html[data-theme="kawaii"] .quote{border:2px solid #f0d9bd;border-left-width:6px}
+  html[data-theme="kawaii"] .metric.key em{color:var(--accent)}
+
+  /* ---------- 办公科技：蓝白仪表盘 ---------- */
+  /* 顶部一条实心蓝，是"企业后台"最强的信号 */
+  html[data-theme="tech"] .sheet{padding-top:54px}
+  html[data-theme="tech"] .sheet::before{height:6px;background:var(--accent)}
+  html[data-theme="tech"] .eyebrow{
+    font-size:18px;letter-spacing:.2em;font-weight:600;text-transform:uppercase;
+  }
+  html[data-theme="tech"] .eyebrow::after{height:1px;background:var(--rule)}
+  html[data-theme="tech"] h1{font-size:44px;font-weight:700;letter-spacing:-.3px}
+  /* 区块标题：左侧一根蓝色短竖线，仪表盘分区的标志 */
+  html[data-theme="tech"] .sec-head{
+    align-items:center;border-bottom:0;padding-bottom:0;margin-bottom:14px;
+  }
+  html[data-theme="tech"] .sec-head h2{
+    font-size:26px;font-weight:600;
+    border-left:4px solid var(--accent);padding-left:12px;line-height:1.1;
+  }
+  html[data-theme="tech"] .sec-head em{font-size:17px}
+  html[data-theme="tech"] .sec-head::after{
+    content:"";flex:1;height:1px;background:var(--rule);margin-left:2px;
+  }
+  /* 指标：做成有底色的仪表块，而不是靠分隔线 */
+  html[data-theme="tech"] .metrics{gap:12px}
+  html[data-theme="tech"] .metric{
+    border-left:0;border-radius:var(--r);background:var(--surface);
+    border:1px solid var(--rule2);padding:16px 18px 15px;
+  }
+  html[data-theme="tech"] .metric:first-child{padding-left:18px}
+  html[data-theme="tech"] .metric em{font-size:56px;letter-spacing:-1px}
+  html[data-theme="tech"] .metric.key{
+    background:var(--hatch);border-color:#cfe0f8;
+  }
+  html[data-theme="tech"] .bars{height:92px;gap:4px}
+  html[data-theme="tech"] .bars i{min-height:6px}
+  html[data-theme="tech"] .bars i.peak{outline:0;box-shadow:0 0 0 2px var(--paper),0 0 0 4px var(--accent)}
+  html[data-theme="tech"] .axis span{opacity:1;font-size:14px}
+  html[data-theme="tech"] .topics{gap:10px}
+  html[data-theme="tech"] .rk .track{height:6px;border-radius:0}
+  html[data-theme="tech"] .rk .track u{border-radius:0}
+  html[data-theme="tech"] .quote{border-left-width:4px;background:var(--hatch)}
+  html[data-theme="tech"] .foot{border-top:1px solid var(--rule);font-size:16px}
 </style>
 </head>
 <body>

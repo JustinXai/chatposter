@@ -16,10 +16,10 @@
     python build.py                                  # 用内置示例数据
     python build.py data/analysis.sample.json
     python build.py data/my.json -o out/my.html
-    python build.py data/my.json --theme paper       # 换主题
+    python build.py data/my.json --theme tech        # 换主题
     python build.py data/my.json --check             # 只体检，不生成
 
-可选主题见 poster.html 顶部注释：gold（默认）/ paper / crimson。
+可选主题见 poster.html 顶部注释：gold（默认）/ kawaii / tech。
 字段契约见 README 或 index.html 右侧「数据契约」卡片。
 """
 
@@ -36,7 +36,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "index.html")
 DEFAULT_DATA = os.path.join(HERE, "data", "analysis.sample.json")
 
-THEMES = ("gold", "paper", "crimson")
+THEMES = ("gold", "kawaii", "tech")
 DEFAULT_THEME = "gold"
 
 START_MARK = "/* >>> REPORT_DATA_START"
@@ -212,7 +212,7 @@ def main():
     ap.add_argument("-t", "--template", default=TEMPLATE, help="模板 HTML 路径（默认 index.html）")
     ap.add_argument("-o", "--out", default=None, help="输出 HTML 路径")
     ap.add_argument("--theme", default=DEFAULT_THEME, choices=THEMES,
-                    help="配色主题：gold（默认）/ paper / crimson")
+                    help="主题：gold 暗夜鎏金（默认）/ kawaii 奶油卡通 / tech 办公科技")
     ap.add_argument("--check", action="store_true", help="只做校验，不生成文件")
     args = ap.parse_args()
 

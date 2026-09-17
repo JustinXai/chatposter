@@ -4,10 +4,9 @@
 生成脱敏示例图：用 poster.html 内置的虚构数据，为每套主题各渲染一张。
 
 输出：
-    docs/demo-gold.png     暗夜鎏金（默认）
-    docs/demo-paper.png    晨光纸感
-    docs/demo-crimson.png  深红夜航
-    docs/demo.png          与默认主题一致，供旧链接兼容
+    docs/demo-gold.png     暗夜鎏金（默认）· 数据终端感
+    docs/demo-kawaii.png   奶油卡通 · 手账贴纸感
+    docs/demo-tech.png     办公科技 · 蓝白仪表盘
 
 数据全部是模板内置的虚构示例，不含任何真实聊天内容。
 """
@@ -25,11 +24,11 @@ TEMPLATE = os.path.join(HERE, "poster.html")
 DOCS = os.path.join(HERE, "docs")
 os.makedirs(DOCS, exist_ok=True)
 
-# 主题 -> (输出名, 图外底色 RGB)。底色用于裁掉底部空白。
+# 主题 -> (输出名, 图外底色 RGB)。底色用于裁掉底部空白，必须与各主题的 --page 一致。
 THEMES = {
-    "gold":    ("demo-gold.png",    (25, 27, 31)),
-    "paper":   ("demo-paper.png",   (232, 227, 218)),
-    "crimson": ("demo-crimson.png", (42, 20, 24)),
+    "gold":   ("demo-gold.png",   (25, 27, 31)),
+    "kawaii": ("demo-kawaii.png", (251, 234, 222)),
+    "tech":   ("demo-tech.png",   (221, 230, 241)),
 }
 
 
@@ -117,11 +116,6 @@ def main():
         size = shoot(hp, png, chrome, bg)
         print("  [%s] %-20s %s" % (theme, name, size))
         os.remove(hp)
-
-        # 默认主题额外复制一份 demo.png，兼容旧引用
-        if theme == "gold":
-            import shutil
-            shutil.copyfile(png, os.path.join(DOCS, "demo.png"))
 
     os.remove(jp)
     print("\n完成，输出目录：docs/")

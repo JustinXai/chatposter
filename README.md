@@ -10,7 +10,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-lightgrey)](#-怎么用)
 [![WeChat](https://img.shields.io/badge/WeChat-4.x-07c160)](#-常见问题)
 
-<img src="docs/demo.png" alt="群聊日报图" width="420">
+<img src="docs/demo-gold.png" alt="群聊日报图" width="420">
 
 </div>
 
@@ -30,8 +30,6 @@ ChatPoster 帮你把一天的消息读完，压成一张图。
 
 ## 图上都有什么
 
-<img src="docs/demo.png" alt="日报图结构说明" width="420">
-
 | 位置 | 内容 |
 |---|---|
 | 最上面 | 群名、日期、一句话总结 |
@@ -46,37 +44,44 @@ ChatPoster 帮你把一天的消息读完，压成一张图。
 
 ---
 
-## 三套配色，随便挑
+## 三套主题，三种性格
 
-同一份数据，三种样子。换主题只要改一个词。
+不是换个颜色那么简单。**字体、圆角、描边、投影、间距、装饰**整个换掉，
+同一份数据出来是三张完全不同的图。
 
 <table>
 <tr>
-<td align="center" width="33%">
+<td align="center" width="33%" valign="top">
 <img src="docs/demo-gold.png" alt="暗夜鎏金"><br>
 <b>暗夜鎏金</b><br>
 <code>gold</code> · 默认<br>
-<sub>黑底金字，安静好读<br>适合晚上看</sub>
+<sub>黑底金线，等宽字<br>密、硬、像数据终端<br>适合科技群、晚上看</sub>
 </td>
-<td align="center" width="33%">
-<img src="docs/demo-paper.png" alt="晨光纸感"><br>
-<b>晨光纸感</b><br>
-<code>paper</code><br>
-<sub>浅色纸面，墨蓝点缀<br>适合白天看、打印</sub>
+<td align="center" width="33%" valign="top">
+<img src="docs/demo-kawaii.png" alt="奶油卡通"><br>
+<b>奶油卡通</b><br>
+<code>kawaii</code><br>
+<sub>奶油底，大圆角，粗描边<br>厚投影，像手账贴纸<br>适合宝妈群、生活群</sub>
 </td>
-<td align="center" width="33%">
-<img src="docs/demo-crimson.png" alt="深红夜航"><br>
-<b>深红夜航</b><br>
-<code>crimson</code><br>
-<sub>酒红黑底，暖红点缀<br>适合社群、电商</sub>
+<td align="center" width="33%" valign="top">
+<img src="docs/demo-tech.png" alt="办公科技"><br>
+<b>办公科技</b><br>
+<code>tech</code><br>
+<sub>白底蓝灰，细线，无投影<br>像企业后台仪表盘<br>适合工作群、对外汇报</sub>
 </td>
 </tr>
 </table>
 
+| 主题 | 底色 | 强调色 | 字体 | 圆角 | 手感 |
+|---|---|---|---|---|---|
+| `gold` | 纯黑 | 金 `#d9a24b` | 等宽为主 | 12px | 硬朗、密集 |
+| `kawaii` | 奶油 `#fff7ef` | 蜜橘 `#ff8a3d` | 圆体优先 | 26px | 圆润、有厚度 |
+| `tech` | 纯白 | 科技蓝 `#1667d1` | 几何无衬线 | 9px | 克制、精确 |
+
 用的时候指定一下就行：
 
 ```bash
-python build.py data/my.json --theme paper
+python build.py data/my.json --theme kawaii
 ```
 
 ---
@@ -269,7 +274,9 @@ Fully local — works offline, uploads nothing.
 
 - **Output is an image**, ready to post back into the group
 - **No truncation** — never cuts a sentence short, the poster just gets longer
-- **Three themes** — `gold` (default), `paper`, `crimson`
+- **Three themes** — `gold` (dark, data-terminal), `kawaii` (cream, sticker),
+  `tech` (white/blue, dashboard). Not just colors: fonts, radii, borders,
+  shadows and spacing all change with it.
 - **Local-first** — never writes to or injects into the WeChat process
 
 Works with WeChat 4.x on Windows and macOS.

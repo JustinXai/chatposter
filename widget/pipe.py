@@ -366,7 +366,17 @@ def analyze(msgs, group, hours=HOURS, name=None, shares=None):
 
 
 # ------------------------------------------------------------------ 出图
-def render(analysis, tag='widget'):
+# 主题 -> 图外底色 RGB（裁边按它判断空白，必须与 poster.html 各主题的 --page 一致）
+THEME_BG = {
+    'gold':   (25, 27, 31),
+    'kawaii': (251, 234, 222),
+    'tech':   (221, 230, 241),
+}
+DEFAULT_THEME = 'gold'
+
+
+def render(analysis, tag='widget', theme=DEFAULT_THEME):
+    theme = theme if theme in THEME_BG else DEFAULT_THEME
     os.makedirs(DATA, exist_ok=True)
     jp = os.path.join(DATA, 'analysis-%s.json' % tag)
     with open(jp, 'w', encoding='utf-8') as f:
@@ -377,7 +387,8 @@ def render(analysis, tag='widget'):
     if not chrome:
         raise RuntimeError('没找到 Chrome / Edge。请设环境变量 CHATPOSTER_CHROME 指向浏览器可执行文件。')
     p = subprocess.run([C.python_exe(), os.path.join(ROOT, 'build.py'), jp,
-                        '-t', os.path.join(ROOT, 'poster.html'), '-o', hp],
+                        '-t', os.path.join(ROOT, 'poster.html'), '-o', hp,
+                        '--theme', theme],
                        capture_output=True, env=C.py_env())
     if p.returncode != 0:
         raise RuntimeError((p.stdout + p.stderr).decode('utf-8', 'replace'))
@@ -402,7 +413,7 @@ def render(analysis, tag='widget'):
         im = Image.open(png).convert('RGB')
         w, h = im.size
         px = im.load()
-        bg = (25, 27, 31)
+        bg = THEME_BG.get(theme, THEME_BG[DEFAULT_THEME])
         last = h - 1
         while last > 0:
             if any(sum(abs(a - b) for a, b in zip(px[x, last], bg)) > 6 for x in (0, w // 2, w - 1)):
@@ -415,15 +426,15 @@ def render(analysis, tag='widget'):
     return png, hp
 
 
-def build_report(acc, group, hours=HOURS, name=None):
+def build_report(acc, group, hours=HOURS, name=None, theme=DEFAULT_THEME):
     acc = acc or default_account()
     C.ensure_dirs()
     msgs = dump(acc, group, hours)
     shares = rich_items(acc, group, hours)
     a = analyze(msgs, group, hours, name=name, shares=shares)
     tag = re.sub(r'[^\w\u4e00-\u9fa5-]', '', a['meta']['group'])[:24] + '-' + time.strftime('%m%d')
-    png, hp = render(a, tag)
-    return {'png': png, 'html': hp, 'analysis': a, 'count': len(msgs)}
+    png, hp = render(a, tag, theme=theme)
+    return {'png': png, 'html': hp, 'analysis': a, 'count': len(msgs), 'theme': theme}
 
 
 if __name__ == '__main__':

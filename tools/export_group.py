@@ -6,6 +6,7 @@ export_group.py · 导出任意群最近 N 小时的干净稿，并出一张日�
     python tools/export_group.py                       # 打印群清单供挑选
     python tools/export_group.py 12345678@chatroom
     python tools/export_group.py 12345678@chatroom --hours 48
+    python tools/export_group.py 12345678@chatroom --theme kawaii   # gold / kawaii / tech
 """
 import os
 import re
@@ -25,13 +26,20 @@ def main():
     hours = 24
     if '--hours' in sys.argv:
         hours = int(sys.argv[sys.argv.index('--hours') + 1])
+    theme = pipe.DEFAULT_THEME
+    if '--theme' in sys.argv:
+        theme = sys.argv[sys.argv.index('--theme') + 1]
+        if theme not in pipe.THEME_BG:
+            print('主题只能是：%s' % ' / '.join(pipe.THEME_BG))
+            return
 
     groups = pipe.find_groups(ACCOUNT, hours)
     if not gid:
         print('共 %d 个群，按最近活跃排序：' % len(groups))
         for g in groups:
             print('  %-34s %-28s %5d 条' % (g['id'], g['name'], g['n24']))
-        print('\n用法：python tools/export_group.py <群id> [--hours N]')
+        print('\n用法：python tools/export_group.py <群id> [--hours N] [--theme %s]'
+              % '|'.join(pipe.THEME_BG))
         return
 
     g = next((x for x in groups if x['id'] == gid), None)
@@ -73,7 +81,7 @@ def main():
     print('Top6 合计: %d' % sum(c for _, c in rank.most_common(6)))
 
     a = pipe.analyze(msgs, gid, hours, name=name, shares=pipe.rich_items(ACCOUNT, gid, hours))
-    png, _hp = pipe.render(a, safe + '-' + time.strftime('%m%d'))
+    png, _hp = pipe.render(a, safe + '-' + time.strftime('%m%d'), theme=theme)
     print('规则版出图：%s' % png)
 
 

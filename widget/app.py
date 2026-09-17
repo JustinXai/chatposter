@@ -61,6 +61,10 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);height:100vh;
 .stage img{width:100%;max-width:760px;border-radius:10px;border:1px solid var(--line);display:block}
 .empty{color:var(--ink3);font-size:13px;margin-top:80px;text-align:center;line-height:2}
 .empty b{color:var(--ink2)}
+.seg{display:flex;gap:3px;background:rgba(255,255,255,.05);border-radius:8px;padding:3px}
+.seg button{background:transparent;color:var(--ink3);border:0;border-radius:6px;
+            padding:7px 12px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+.seg button.on{background:var(--sf);color:var(--ink)}
 </style></head><body>
 <div class="side">
   <div class="head"><h1>微信挂件 · 群聊日报</h1>
@@ -70,6 +74,11 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);height:100vh;
 <div class="main">
   <div class="bar">
     <button class="btn" id="go" disabled>生成日报图</button>
+    <div class="seg" id="seg">
+      <button data-t="gold" class="on">鎏金</button>
+      <button data-t="kawaii">卡通</button>
+      <button data-t="tech">科技</button>
+    </div>
     <span class="st" id="st">选一个群，然后点左边按钮</span>
   </div>
   <div class="stage" id="stage">
@@ -78,9 +87,13 @@ body{background:var(--bg);color:var(--ink);font-family:var(--sans);height:100vh;
   </div>
 </div>
 <script>
-let cur=null, groups=[];
+let cur=null, groups=[], theme='gold';
 const $=s=>document.querySelector(s);
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{
+  theme=b.dataset.t;
+  document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x===b));
+});
 async function load(){
   const r=await fetch('/api/groups'); groups=await r.json();
   $('#cnt').textContent=groups.length+' 个群 · '+groups.filter(g=>g.n24>0).length+' 个 24h 活跃';
@@ -102,7 +115,7 @@ $('#go').onclick=async()=>{
   try{
     const r=await fetch('/api/build',{method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({group:cur.id,name:cur.name})});
+      body:JSON.stringify({group:cur.id,name:cur.name,theme:theme})});
     const d=await r.json();
     if(d.error){$('#st').textContent='失败：'+d.error;b.disabled=false;b.textContent='生成日报图';return}
     $('#stage').innerHTML=`<img src="${d.png}?t=${Date.now()}">`;
@@ -158,10 +171,11 @@ class H(BaseHTTPRequestHandler):
         except Exception:
             req = {}
         gid, gname = req.get('group'), req.get('name') or req.get('group')
+        theme = req.get('theme') or pipe.DEFAULT_THEME
         if not gid:
             return self._send(400, json.dumps({'error': 'no group'}, ensure_ascii=False))
         try:
-            r = pipe.build_report(pipe.default_account(), gid, name=gname)
+            r = pipe.build_report(pipe.default_account(), gid, name=gname, theme=theme)
             png = '/out/' + os.path.basename(r['png'])
             return self._send(200, json.dumps(
                 {'png': png, 'count': r['count'], 'name': gname}, ensure_ascii=False))

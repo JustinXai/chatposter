@@ -25,12 +25,11 @@ out/daily-*
 out/report-*
 data/analysis-*.json
 
-# 反过来放行示例文件（这三套 demo 图都是虚构数据渲染的）
+# 反过来放行示例文件（三套 demo 图都是虚构数据渲染的）
 !data/analysis.sample.json
-!docs/demo.png
 !docs/demo-gold.png
-!docs/demo-paper.png
-!docs/demo-crimson.png
+!docs/demo-kawaii.png
+!docs/demo-tech.png
 
 # ---------- 第三道：数据库与运行时垃圾 ----------
 *.db
