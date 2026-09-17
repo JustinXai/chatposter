@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="gold">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,9 +8,14 @@
   /* ===============================================================
      群聊日报 · 单图版（宽固定 1080，高随内容）
      ---------------------------------------------------------------
+     三套主题，靠 <html data-theme="..."> 切换：
+       gold   暗夜鎏金（默认）—— 安静的黑底，唯一强调色是金
+       paper  晨光纸感            —— 浅色纸面，墨蓝强调，适合白天看/打印
+       crimson 深红夜航           —— 酒红黑底，暖红强调，适合社群/电商
+     换主题只需改 <html> 上一个属性，其余一律不动。
+
      设计口径（design-taste-frontend）
-       Design Read：给老板群看的一页日报，手机上按全宽扫读，
-                    安静的黑底 + 等宽数字 + 唯一强调色（金）
+       Design Read：给老板群看的一页日报，手机上按全宽扫读
        Dials：VARIANCE 5 / MOTION 1 / DENSITY 5
      硬约束：字号按「图」定尺（手机上全宽可读）、无辉光、无装饰网格、
              单强调色、圆角全站一致、零破折号、中间点每行最多一个
@@ -19,6 +24,7 @@
      尺寸口径：宽固定 1080；高不设上限，内容多少就多长。
              不用 line-clamp、不省略号 —— 信息完整优先于版面紧凑。
      =============================================================== */
+  /* ---------- 主题：暗夜鎏金（默认） ---------- */
   :root{
     --paper:#0b0c0e;
     --surface:#111318;
@@ -31,12 +37,57 @@
     --up:#e5534b;
     --down:#2f9e63;
     --flat:#30353c;
+    --page:#191b1f;                      /* 图外底色，裁边时按它判断 */
+    --t-title:#f2f3f5;
+    --t-strong:#f0f1f3;
+    --t-lede:#b9bec5;
+    --t-quote:#e8e2d5;
     --r:12px;
     --mono:ui-monospace,"JetBrains Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace;
     --sans:"Microsoft YaHei","PingFang SC","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
   }
+
+  /* ---------- 主题：晨光纸感 ---------- */
+  html[data-theme="paper"]{
+    --paper:#f7f4ee;
+    --surface:#fffdf9;
+    --ink:#242322;
+    --ink2:#5d5a55;
+    --ink3:#96918a;
+    --rule:rgba(36,35,34,.14);
+    --rule2:rgba(36,35,34,.08);
+    --accent:#2f5d8a;                    /* 墨蓝 */
+    --up:#c0483c;
+    --down:#2b7a52;
+    --flat:#d9d3c8;
+    --page:#e8e3da;
+    --t-title:#1c1b1a;
+    --t-strong:#1f1e1d;
+    --t-lede:#4a4744;
+    --t-quote:#2a3d52;
+  }
+
+  /* ---------- 主题：深红夜航 ---------- */
+  html[data-theme="crimson"]{
+    --paper:#160c0e;
+    --surface:#1f1215;
+    --ink:#f3e9ea;
+    --ink2:#a88f93;
+    --ink3:#77605f;
+    --rule:rgba(255,235,235,.13);
+    --rule2:rgba(255,235,235,.07);
+    --accent:#e2604a;                    /* 暖红 */
+    --up:#f0685c;
+    --down:#3f9e6d;
+    --flat:#3a2629;
+    --page:#2a1418;
+    --t-title:#faf1f1;
+    --t-strong:#f7ecec;
+    --t-lede:#c9aeb1;
+    --t-quote:#f6e0d8;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{background:#191b1f}
+  html,body{background:var(--page)}
   body{font-family:var(--sans);display:flex;justify-content:center;align-items:flex-start}
 
   .sheet{
@@ -54,7 +105,7 @@
   .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule2)}
   .eyebrow em{font-style:normal;font-size:17px;letter-spacing:.1em;color:var(--ink3)}
   h1{font-size:47px;line-height:1.24;font-weight:800;letter-spacing:-.5px;margin:18px 0 12px}
-  .lede{font-size:26px;line-height:1.5;color:#b9bec5}
+  .lede{font-size:26px;line-height:1.5;color:var(--t-lede)}
   .lede b{color:var(--up);font-weight:600}
   .lede s{color:var(--down);text-decoration:none}
   .meta{
@@ -88,9 +139,9 @@
   .bars i{flex:1;display:block;min-height:4px;border-radius:3px 3px 0 0;background:var(--flat)}
   .bars i.up{background:var(--up)}
   .bars i.down{background:var(--down)}
-  .bars i.peak{outline:2px solid rgba(255,255,255,.6);outline-offset:2px}
+  .bars i.peak{outline:2px solid var(--ink2);outline-offset:2px}
   .axis{display:flex;gap:5px;margin-top:8px}
-  .axis span{flex:1;text-align:center;font-family:var(--mono);font-size:15px;color:#4a5058}
+  .axis span{flex:1;text-align:center;font-family:var(--mono);font-size:15px;color:var(--ink3);opacity:.75}
   .legend{margin-top:10px;font-family:var(--mono);font-size:17px;color:var(--ink3)}
   .legend u{text-decoration:none;color:var(--up)}
   .legend d{text-decoration:none;color:var(--down)}
@@ -109,7 +160,7 @@
   }
   .t-delta{font-family:var(--mono);font-size:19px;font-weight:700;margin-left:auto}
   .t-delta.up{color:var(--up)} .t-delta.down{color:var(--down)}
-  .t-title{font-size:27px;font-weight:700;line-height:1.32;color:#f2f3f5}
+  .t-title{font-size:27px;font-weight:700;line-height:1.32;color:var(--t-title)}
   .t-line{
     /* 不做行数截断：日报的价值在信息完整，宁可图长一点也不省略 */
     font-size:21px;line-height:1.5;color:var(--ink2);
@@ -127,7 +178,7 @@
     padding:12px 15px;display:grid;grid-template-columns:minmax(0,1fr) auto;
     gap:5px 16px;align-items:baseline;
   }
-  .sh .nm{font-size:21px;line-height:1.4;color:#f0f1f3;overflow-wrap:anywhere}
+  .sh .nm{font-size:21px;line-height:1.4;color:var(--t-strong);overflow-wrap:anywhere}
   .sh .meta{font-family:var(--mono);font-size:16px;color:var(--ink3);white-space:nowrap}
   .sh .sub{grid-column:1/-1;font-family:var(--mono);font-size:16px;color:var(--ink3)}
   .sh .tagx{
@@ -143,7 +194,7 @@
   .rk .n{font-family:var(--mono);font-size:18px;color:var(--ink3);text-align:right}
   .rk .nm{font-size:23px;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
   .rk .nm s{text-decoration:none;font-family:var(--mono);font-size:16px;color:var(--ink3)}
-  .rk .track{display:block;height:4px;border-radius:2px;background:rgba(255,255,255,.08)}
+  .rk .track{display:block;height:4px;border-radius:2px;background:var(--rule2)}
   .rk .track u{display:block;height:100%;border-radius:2px;background:var(--ink3);text-decoration:none}
   .rk:first-child .track u{background:var(--accent)}
   .rk .v{font-family:var(--mono);font-size:25px;font-weight:700;text-align:right}
@@ -153,7 +204,7 @@
     background:var(--surface);padding:18px 20px;
   }
   .quote .lb{display:block;font-family:var(--mono);font-size:16px;letter-spacing:.14em;color:var(--accent);margin-bottom:11px}
-  .quote p{font-size:26px;line-height:1.58;color:#e8e2d5}
+  .quote p{font-size:26px;line-height:1.58;color:var(--t-quote)}
   .quote cite{display:block;font-style:normal;font-size:19px;color:var(--ink3);margin-top:13px}
 
   /* ---------- 落款 ---------- */
@@ -369,7 +420,7 @@ function render() {
       </div>
       <div class="t-title">${esc(t.title)}</div>
       ${(t.summary || []).map(s => `<div class="t-line">${esc(s)}</div>`).join("")}
-      <div class="t-tag mono" style="border:0;padding:0;color:#5a6068">提及 ${t.mentions} 次　占 ${share}%</div>
+      <div class="t-tag mono" style="border:0;padding:0;opacity:.72">提及 ${t.mentions} 次　占 ${share}%</div>
     </div>`;
   }).join("");
   $("pRest").innerHTML = rest.length

@@ -16,8 +16,10 @@
     python build.py                                  # 用内置示例数据
     python build.py data/analysis.sample.json
     python build.py data/my.json -o out/my.html
+    python build.py data/my.json --theme paper       # 换主题
     python build.py data/my.json --check             # 只体检，不生成
 
+可选主题见 poster.html 顶部注释：gold（默认）/ paper / crimson。
 字段契约见 README 或 index.html 右侧「数据契约」卡片。
 """
 
@@ -33,6 +35,9 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(HERE, "index.html")
 DEFAULT_DATA = os.path.join(HERE, "data", "analysis.sample.json")
+
+THEMES = ("gold", "paper", "crimson")
+DEFAULT_THEME = "gold"
 
 START_MARK = "/* >>> REPORT_DATA_START"
 END_MARK = "/* <<< REPORT_DATA_END <<< */"
@@ -162,7 +167,7 @@ def check_consistency(data):
 
 # ---------------------------------------------------------------- 注入
 
-def inject(data, template_path=TEMPLATE, out_path=None):
+def inject(data, template_path=TEMPLATE, out_path=None, theme=DEFAULT_THEME):
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
 
@@ -177,6 +182,11 @@ def inject(data, template_path=TEMPLATE, out_path=None):
                  "const REPORT = " + payload + ";\n")
 
     html = html[:i] + new_block + html[j:]
+
+    # 注入主题（模板里 <html data-theme="...">）
+    if theme and theme != DEFAULT_THEME:
+        html = re.sub(r'(<html[^>]*\bdata-theme=")[^"]*(")',
+                      lambda m: m.group(1) + theme + m.group(2), html, count=1)
 
     # 注入生成时间戳（可选，模板里没有就跳过）
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -201,6 +211,8 @@ def main():
     ap.add_argument("data", nargs="?", default=DEFAULT_DATA, help="analysis JSON 路径")
     ap.add_argument("-t", "--template", default=TEMPLATE, help="模板 HTML 路径（默认 index.html）")
     ap.add_argument("-o", "--out", default=None, help="输出 HTML 路径")
+    ap.add_argument("--theme", default=DEFAULT_THEME, choices=THEMES,
+                    help="配色主题：gold（默认）/ paper / crimson")
     ap.add_argument("--check", action="store_true", help="只做校验，不生成文件")
     args = ap.parse_args()
 
@@ -244,9 +256,10 @@ def main():
 
     rule("3 / 注入模板")
     out = args.out or default_out(data)
-    inject(data, template_path=args.template, out_path=out)
+    inject(data, template_path=args.template, out_path=out, theme=args.theme)
     size = os.path.getsize(out)
     print("  [ok] 模板：%s" % os.path.relpath(args.template, HERE))
+    print("  [ok] 主题：%s" % args.theme)
     print("  [ok] 输出：%s  (%.1f KB)" % (os.path.relpath(out, HERE), size / 1024))
 
     rule()
