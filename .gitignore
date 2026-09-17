@@ -55,3 +55,9 @@ desktop.ini
 # ---------- 临时文件 ----------
 _tmp/
 *.log
+
+# ---------- 开发期的临时脚本与报告 ----------
+_*.py
+_*.txt
+*push_report.txt
+*guard_report.txt
