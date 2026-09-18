@@ -39,8 +39,38 @@ ChatPoster 帮你把一天的消息读完，压成一张图。
 | 群内分享 | 今天群里发的文件和链接（**只记名字和大小，不看内容**） |
 | 发言排行 | 谁说得最多 |
 | 今日一句 | 今天最值得记下来的一句话 |
+| **右下角** | **你的名字 + 二维码，方便群里的人直接扫你**（可选） |
 
 **图上不会出现省略号。** 内容多就图长一点，不会把话截掉半句。
+
+---
+
+## 右下角放上你自己
+
+图是要发回群里的，所以右下角留了一个位置放**你的名字和二维码** —— 群友看完日报，顺手就能加你。
+
+配一次，以后每张图都自动带上：
+
+1. 把微信二维码存成 `assets/qr.png`
+2. 填上你的名字：
+
+```bash
+set CHATPOSTER_CONTACT_NAME=你的名字
+set CHATPOSTER_CONTACT_ROLE=你的身份或公司     :: 可选
+set CHATPOSTER_CONTACT_NOTE=扫码加我           :: 可选，默认就是这个
+```
+
+也可以直接写在分析稿的 JSON 里（优先级更高）：
+
+```json
+"contact": { "name": "你的名字", "role": "你的身份或公司", "note": "扫码加我", "qr": "assets/qr.png" }
+```
+
+- **不配也能跑**：右下角会显示一个虚线空位，提醒你这里可以放二维码
+- **整块都不想要**：名字和二维码都留空，版面会自动收回去
+- 二维码会被**内嵌进 HTML**（转成 data URI），所以出好的图是自包含的，发给谁都不会裂
+
+> 二维码是个人信息，`.gitignore` 已排除 `assets/` 下的图片，**不会被提交到仓库**。
 
 ---
 
@@ -181,6 +211,10 @@ pip install pillow          # 截图后裁掉多余空白
 | `CHATPOSTER_ACCOUNT` | 指定哪个微信账号 | 第一个找到的 |
 | `CHATPOSTER_PLAIN` | 解密结果放哪 | `out/wx_plain` |
 | `CHATPOSTER_KEYS` | 密钥文件路径 | `out/wx_keys.json` |
+| `CHATPOSTER_CONTACT_NAME` | 右下角落款：名字 | 空（不显示） |
+| `CHATPOSTER_CONTACT_ROLE` | 右下角落款：身份或公司 | 空 |
+| `CHATPOSTER_CONTACT_NOTE` | 二维码上面那句话 | `扫码加我` |
+| `CHATPOSTER_QR` | 二维码图片路径 | `assets/qr.png` |
 
 ---
 
@@ -206,6 +240,7 @@ chatposter/
 │   └── richmsg.py      处理文件、链接这类消息
 │
 ├── data/analysis.sample.json   示例数据（虚构的）
+├── assets/qr.png               放你的二维码（不会上传）
 └── docs/                       示例图和设置说明
 ```
 
@@ -277,6 +312,8 @@ Fully local — works offline, uploads nothing.
 - **Three themes** — `gold` (dark, data-terminal), `kawaii` (cream, sticker),
   `tech` (white/blue, dashboard). Not just colors: fonts, radii, borders,
   shadows and spacing all change with it.
+- **Your own contact block** — bottom-right corner holds your name and QR code,
+  so readers can add you straight from the poster
 - **Local-first** — never writes to or injects into the WeChat process
 
 Works with WeChat 4.x on Windows and macOS.

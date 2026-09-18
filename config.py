@@ -52,6 +52,18 @@ def account_dirs():
     return out
 
 
+# ----------------------------------------------------------------- 落款 / 联系方式
+# 报的右下角可以放「名字 + 二维码」，方便读者扫码加你。
+# 两种给法：
+#   1) 分析稿 JSON 里写 contact 字段（优先级最高，示例数据就是这么写的）
+#   2) 什么都不写，在这里用环境变量配一次，之后每张图都带上
+CONTACT_NAME = os.environ.get("CHATPOSTER_CONTACT_NAME") or ""
+CONTACT_ROLE = os.environ.get("CHATPOSTER_CONTACT_ROLE") or ""
+CONTACT_NOTE = os.environ.get("CHATPOSTER_CONTACT_NOTE") or "扫码加我"
+# 二维码图片：默认找 assets/qr.png，也可以用环境变量指到任意位置
+QR_FILE = os.environ.get("CHATPOSTER_QR") or os.path.join(ROOT, "assets", "qr.png")
+
+
 # ----------------------------------------------------------------- 运行时
 def python_exe():
     """当前解释器。子进程复用同一个，避免写死某个绝对路径。"""

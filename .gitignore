@@ -25,6 +25,10 @@ out/daily-*
 out/report-*
 data/analysis-*.json
 
+# 你自己的二维码（个人信息，只本地留存）；assets/README.txt 是说明，要放行
+assets/*
+!assets/README.txt
+
 # 反过来放行示例文件（三套 demo 图都是虚构数据渲染的）
 !data/analysis.sample.json
 !docs/demo-hero.png

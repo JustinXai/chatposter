@@ -24,6 +24,7 @@
 """
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -33,8 +34,16 @@ from datetime import datetime
 # ---------------------------------------------------------------- 常量
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import config as C  # noqa: E402
+
 TEMPLATE = os.path.join(HERE, "index.html")
 DEFAULT_DATA = os.path.join(HERE, "data", "analysis.sample.json")
+
+CONTACT_NAME = C.CONTACT_NAME
+CONTACT_ROLE = C.CONTACT_ROLE
+CONTACT_NOTE = C.CONTACT_NOTE
+QR_FILE = C.QR_FILE
 
 THEMES = ("gold", "kawaii", "tech")
 DEFAULT_THEME = "gold"
@@ -167,9 +176,53 @@ def check_consistency(data):
 
 # ---------------------------------------------------------------- 注入
 
-def inject(data, template_path=TEMPLATE, out_path=None, theme=DEFAULT_THEME):
+def _as_data_uri(path):
+    """把本地图片读成 data URI。报面要能单独发出去，所以必须内嵌，不能留外链。"""
+    ext = os.path.splitext(path)[1].lower().lstrip(".") or "png"
+    if ext == "jpg":
+        ext = "jpeg"
+    with open(path, "rb") as f:
+        return "data:image/%s;base64,%s" % (ext, base64.b64encode(f.read()).decode("ascii"))
+
+
+def apply_contact(data):
+    """补上落款/联系方式。优先级：分析稿里的 contact > config 里的默认值。
+
+    二维码既可以是 data URI / http 链接，也可以是本地图片路径（会被内嵌成 data URI）。
+    返回是否真的配了东西。
+    """
+    ct = dict(data.get("contact") or {})
+    if not ct.get("name"):
+        ct["name"] = CONTACT_NAME
+    if not ct.get("role"):
+        ct["role"] = CONTACT_ROLE
+    if not ct.get("note"):
+        ct["note"] = CONTACT_NOTE
+
+    qr = ct.get("qr") or ""
+    if not qr and QR_FILE and os.path.isfile(QR_FILE):
+        qr = QR_FILE
+    if qr and not qr.startswith(("data:", "http://", "https://")):
+        if os.path.isfile(qr):
+            qr = _as_data_uri(qr)
+        else:
+            warn("二维码文件不存在，该位置将留空：%s" % qr)
+            qr = ""
+    ct["qr"] = qr
+
+    if ct["name"] or ct["qr"]:
+        data["contact"] = ct
+        return True
+    data.pop("contact", None)
+    return False
+
+
+def inject(data, template_path=TEMPLATE, out_path=None, theme=DEFAULT_THEME, contact=True):
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
+
+    if contact:
+        apply_contact(data)
 
     i = html.find(START_MARK)
     j = html.find(END_MARK)
@@ -213,6 +266,8 @@ def main():
     ap.add_argument("-o", "--out", default=None, help="输出 HTML 路径")
     ap.add_argument("--theme", default=DEFAULT_THEME, choices=THEMES,
                     help="主题：gold 暗夜鎏金（默认）/ kawaii 奶油卡通 / tech 办公科技")
+    ap.add_argument("--name", default=None, help="右下角落款：名字（覆盖配置）")
+    ap.add_argument("--qr", default=None, help="右下角落款：二维码图片路径（覆盖配置）")
     ap.add_argument("--check", action="store_true", help="只做校验，不生成文件")
     args = ap.parse_args()
 
@@ -256,10 +311,24 @@ def main():
 
     rule("3 / 注入模板")
     out = args.out or default_out(data)
-    inject(data, template_path=args.template, out_path=out, theme=args.theme)
+    if args.name or args.qr:
+        ct = dict(data.get("contact") or {})
+        if args.name:
+            ct["name"] = args.name
+        if args.qr:
+            ct["qr"] = args.qr
+        data["contact"] = ct
+    has_contact = inject(data, template_path=args.template, out_path=out, theme=args.theme)
     size = os.path.getsize(out)
     print("  [ok] 模板：%s" % os.path.relpath(args.template, HERE))
     print("  [ok] 主题：%s" % args.theme)
+    if has_contact:
+        ct = data.get("contact") or {}
+        print("  [ok] 落款：%s %s"
+              % (ct.get("name") or "(没名字)",
+                 "＋二维码" if ct.get("qr") else "＋二维码空位（没找到图片）"))
+    else:
+        print("  [--] 落款：未配置，右下角不显示加我卡片")
     print("  [ok] 输出：%s  (%.1f KB)" % (os.path.relpath(out, HERE), size / 1024))
 
     rule()

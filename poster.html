@@ -25,6 +25,12 @@
      硬约束：字号按「图」定尺（手机上全宽可读）、零破折号、中间点每行最多一个
      尺寸口径：宽固定 1080；高不设上限，内容多少就多长。
              不用 line-clamp、不省略号 —— 信息完整优先于版面紧凑。
+
+     右下角落款（可选）：REPORT.contact = { name, role, note, qr }
+       图是发回群里的，所以右下角留一个「扫码加我」的位置。
+       没配 name / qr 时整块不渲染，版面自动收回去。
+       qr 支持本地路径 / data URI / http 链接；本地路径由 build.py 内嵌成 data URI，
+       保证出好的 HTML 是自包含的，转发出去不会裂图。
      =============================================================== */
   /* ---------- 主题：暗夜鎏金（默认）· 数据终端 ---------- */
   :root{
@@ -273,12 +279,48 @@
   .quote cite{display:block;font-style:normal;font-size:19px;color:var(--ink3);margin-top:13px}
 
   /* ---------- 落款 ---------- */
+  /* ---------- 落款 + 右下角「扫码加我」 ---------- */
   .foot{
-    border-top:1px solid var(--rule);padding-top:15px;
-    display:flex;justify-content:space-between;gap:20px;
+    border-top:1px solid var(--rule);padding-top:16px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:26px;
+  }
+  .foot-l{
+    display:flex;flex-direction:column;gap:9px;padding-bottom:4px;
     font-family:var(--mono);font-size:17px;color:var(--ink3);
   }
-  .foot b{color:var(--ink2);font-weight:500}
+  .foot-l b{color:var(--ink2);font-weight:500}
+
+  /* 联系方式卡：右下角，给读者一个「加我」的入口。
+     尺寸按「图」定尺 —— 长图发到群里会被缩小，二维码要够大才扫得动。 */
+  .contact{
+    flex:none;display:flex;align-items:center;gap:16px;
+    border:var(--border);border-radius:var(--r);background:var(--surface);
+    box-shadow:var(--shadow);padding:14px 18px;
+  }
+  .contact .who{display:flex;flex-direction:column;gap:6px;min-width:0;text-align:right}
+  .contact .who b{
+    font-size:24px;line-height:1.2;font-weight:700;
+    color:var(--t-strong);font-family:var(--title-fam);
+  }
+  .contact .who span{
+    font-family:var(--mono);font-size:16px;line-height:1.45;color:var(--ink3);
+  }
+  .contact .who em{
+    font-style:normal;font-family:var(--mono);font-size:15px;
+    letter-spacing:.08em;color:var(--accent);
+  }
+  .contact .qr{
+    width:176px;height:176px;flex:none;display:block;
+    border-radius:6px;background:#fff;object-fit:contain;
+    border:1px solid var(--rule2);
+  }
+  /* 没配二维码时，留一个看得见的空位，而不是让整块消失 */
+  .contact .qr.ph{
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    background:transparent;border:1px dashed var(--ink3);
+    color:var(--ink3);font-family:var(--mono);font-size:15px;line-height:1.5;
+    padding:10px;
+  }
 
   /* ===============================================================
      主题的「版式性格」层
@@ -320,6 +362,11 @@
   html[data-theme="kawaii"] .rk .track u{border-radius:999px}
   html[data-theme="kawaii"] .quote{border:2px solid #f0d9bd;border-left-width:6px}
   html[data-theme="kawaii"] .metric.key em{color:var(--accent)}
+  /* 联系方式卡：粗描边 + 实心投影，和贴纸手感一致 */
+  html[data-theme="kawaii"] .contact{border:2px solid #f0d9bd;padding:16px 20px}
+  html[data-theme="kawaii"] .contact .qr{border-radius:14px;border:2px solid #f0d9bd}
+  html[data-theme="kawaii"] .contact .who b{font-size:26px}
+  html[data-theme="kawaii"] .foot-l{font-size:16px}
 
   /* ---------- 办公科技：蓝白仪表盘 ---------- */
   /* 顶部一条实心蓝，是"企业后台"最强的信号 */
@@ -361,7 +408,12 @@
   html[data-theme="tech"] .rk .track{height:6px;border-radius:0}
   html[data-theme="tech"] .rk .track u{border-radius:0}
   html[data-theme="tech"] .quote{border-left-width:4px;background:var(--hatch)}
-  html[data-theme="tech"] .foot{border-top:1px solid var(--rule);font-size:16px}
+  html[data-theme="tech"] .foot-l{border-top:0;font-size:16px}
+  html[data-theme="tech"] .contact{border-radius:var(--r);padding:14px 16px}
+  html[data-theme="tech"] .contact .who em{
+    color:#fff;background:var(--accent);border-radius:3px;padding:2px 8px;align-self:flex-end;
+  }
+  html[data-theme="tech"] .contact .qr{border-radius:4px}
 </style>
 </head>
 <body>
@@ -407,8 +459,11 @@
   </section>
 
   <footer class="foot">
-    <span><b>取数</b> 本机微信只读解密库（离线）　<b>口径</b> 仅群聊文本</span>
-    <span id="pFootDate">-</span>
+    <div class="foot-l">
+      <span><b>取数</b> 本机微信只读解密库（离线）　<b>口径</b> 仅群聊文本</span>
+      <span id="pFootDate">-</span>
+    </div>
+    <div class="contact" id="pContact" style="display:none"></div>
   </footer>
 
 </div>
@@ -497,6 +552,14 @@ const REPORT = {
       { name:"从 0 到 1 跑通一条交付链路的完整复盘", url:"mp.weixin.qq.com", who:"老陈·工厂数字化", ts:1757507200 },
       { name:"开源模型私有化部署的成本实测",       url:"zhuanlan.zhihu.com", who:"Pycpp",          ts:1757510800 }
     ]
+  },
+  /* 右下角「扫码加我」。qr 给图片路径会被自动内嵌成 data URI；
+     这里故意留空，示例图展示的就是「空位」长什么样。 */
+  contact: {
+    name: "你的名字",
+    role: "你的身份或公司",
+    note: "扫码加我",
+    qr: ""
   }
 };
 /* <<< REPORT_DATA_END <<< */
@@ -621,6 +684,20 @@ function render() {
     `<span class="lb mono">${esc(REPORT.quote.label)}</span>
      <p>${esc(REPORT.quote.text)}</p>
      <cite>${esc(stripDash(REPORT.quote.from))}</cite>`;
+
+  /* 右下角「扫码加我」——没配 name / qr 就整块不显示，版面自动收回去 */
+  const CT = REPORT.contact || {};
+  if (CT.name || CT.qr) {
+    const who = (CT.name ? `<b>${esc(CT.name)}</b>` : "")
+              + (CT.role ? `<span>${esc(CT.role)}</span>` : "")
+              + (CT.note ? `<em>${esc(CT.note)}</em>` : "");
+    $("pContact").style.display = "";
+    $("pContact").innerHTML =
+      (who ? `<div class="who">${who}</div>` : "")
+      + (CT.qr
+          ? `<img class="qr" src="${esc(CT.qr)}" alt="${esc(CT.name || "二维码")}">`
+          : `<div class="qr ph">二维码<br>放这里</div>`);
+  }
 }
 render();
 
