@@ -27,6 +27,8 @@ DUMP = C.DUMP
 OUT = C.OUT
 DATA = C.DATA
 HOURS = 24
+# 一个话题桶至少要命中这么多条消息才上图（太少不成"话题"）
+MIN_TOPIC_HITS = 3
 
 TS_RE = re.compile(r'^\d{2}:\d{2}$')
 BAD = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ufffd]')
@@ -58,16 +60,59 @@ def readable(s):
         return False
     return bool(CJK_RE.search(s))
 
-# 主题词典（启发式分析器的骨架；接上 LLM 后可只留作兜底）
-TOPIC_RULES = [
-    ("断服", "服务可用性", ["空返", "断流", "429", "炸", "崩", "拉闸", "不返回", "活着", "恢复", "负载", "卡"]),
-    ("渠道", "渠道与号池", ["渠道", "号池", "az", "报价", "倍率", "成品号", "正价", "额度", "sub2", "兜底", "api"]),
-    ("风控", "风控与封号", ["风控", "标记", "反代", "指纹", "限额", "封号", "并发", "检测"]),
-    ("替代", "替代模型", ["grok", "gemini", "国模", "deepseek", "claude", "换", "替代", "dp"]),
-    ("成本", "成本与价格", ["成本", "贵", "便宜", "价格", "费用", "倍率", "一刀"]),
-    ("降智", "降智与质量", ["降智", "智商", "鹈鹕", "弱智", "测试", "缓存"]),
-    ("解法", "工具与做法", ["解库", "读取记录", "sqlite", "本地文件", "抓取", "源码", "部署"]),
+# ------------------------------------------------------------------ 话题词典
+# 词典外置在项目根的 topic-rules.json（sets 下多套，按群类型自动挑）。
+# 原来的硬编码只适合「AI 渠道群」，换成别的群会整张图一个话题都出不来。
+TOPIC_RULES_FILE = os.path.join(ROOT, 'topic-rules.json')
+
+_FALLBACK_RULES = [
+    ("断服", "服务可用性", ["空返", "断流", "429", "拉闸", "不返回", "恢复", "负载"]),
+    ("渠道", "渠道与号池", ["渠道", "号池", "报价", "倍率", "成品号", "额度", "兜底"]),
+    ("风控", "风控与封号", ["风控", "标记", "指纹", "限额", "封号", "并发", "检测"]),
+    ("成本", "成本与价格", ["成本", "便宜", "价格", "费用", "一刀"]),
+    ("解法", "工具与做法", ["解库", "读取记录", "sqlite", "本地文件", "抓取", "部署"]),
 ]
+
+
+def load_topic_sets():
+    """读 topic-rules.json，返回 ({套名: [(tag, title, [kw])]}, [屏蔽词])。"""
+    try:
+        with open(TOPIC_RULES_FILE, encoding='utf-8') as f:
+            cfg = json.load(f)
+    except Exception:
+        return {'default': _FALLBACK_RULES}, []
+    sets = {}
+    for name, rules in (cfg.get('sets') or {}).items():
+        sets[name] = [(r['tag'], r['title'], list(r.get('keywords') or [])) for r in rules]
+    if not sets:
+        sets = {'default': _FALLBACK_RULES}
+    return sets, [w for w in (cfg.get('blocklist') or []) if w]
+
+
+def pick_topic_set(sets, texts, force=None):
+    """自动挑词典：每套跑一遍，命中消息条数最多的胜出（可用 CHATPOSTER_TOPICS 强制指定）。"""
+    force = force or os.environ.get('CHATPOSTER_TOPICS')
+    if force and force in sets:
+        return force, sets[force]
+    if len(sets) == 1:
+        return list(sets)[0], list(sets.values())[0]
+
+    lows = [x['text'].lower() for x in texts]
+    best_name, best_score = list(sets)[0], -1
+    for name, rules in sets.items():
+        score = sum(1 for low in lows if any(k in low for _t, _l, kws in rules for k in kws))
+        if score > best_score:
+            best_name, best_score = name, score
+    return best_name, sets[best_name]
+
+
+def topic_rules():
+    """兼容旧调用：返回默认那套。"""
+    sets, _block = load_topic_sets()
+    return sets.get('api') or list(sets.values())[0]
+
+
+TOPIC_RULES = topic_rules()
 
 
 # ------------------------------------------------------------------ 取数
@@ -266,36 +311,60 @@ def dump(acc, group, hours=HOURS):
 
 
 # ------------------------------------------------------------------ 分析
-def analyze(msgs, group, hours=HOURS, name=None, shares=None):
+def analyze(msgs, group, hours=HOURS, name=None, shares=None, day=None, topic_set=None):
+    """把消息压成报面数据。
+
+    topic_set 为 None 时自动挑词典（按命中量选最合适的一套）；
+    day 传 'YYYY-MM-DD' 时只统计当天，报面日期也跟着变成那天。
+    """
     import datetime as dt
+
+    if day:
+        msgs = [x for x in msgs
+                if time.strftime('%Y-%m-%d', time.localtime(x['ts'])) == day]
+
     texts = [x for x in msgs if x['type'] == 1 and x['text']]
+
     hours_bin = [0] * 24
     for x in msgs:
         hours_bin[time.localtime(x['ts']).tm_hour] += 1
     rank = Counter(x['who'] for x in texts if x['who'])
 
+    sets, blocklist = load_topic_sets()
+    set_name, rules = pick_topic_set(sets, texts, force=topic_set)
+
+    def blocked(s):
+        low = s.lower()
+        return any(w.lower() in low for w in blocklist)
+
     buckets = defaultdict(list)
     for x in texts:
         low = x['text'].lower()
-        for tag, _label, kws in TOPIC_RULES:
+        for tag, _label, kws in rules:
             if any(k in low for k in kws):
                 buckets[tag].append(x)
 
     topics = []
-    for tag, label, _kws in TOPIC_RULES:
+    for tag, label, _kws in rules:
         items = buckets.get(tag) or []
-        if len(items) < 3:
+        if len(items) < MIN_TOPIC_HITS:
             continue
         # 摘要：在该桶里挑「信息量大的完整句子」，不做截断
         # （按长度挑、不按长度砍 —— 宁可少列一条，也不留省略号）
-        cand = [z for z in items if 10 <= len(z['text']) <= 160]
-        picks = sorted(cand, key=lambda z: -len(z['text']))[:4] or items[:3]
+        # 含屏蔽词的句子直接跳过，不上图；但仍计入提及量。
+        clean = [z for z in items if not blocked(z['text'])]
+        cand = [z for z in clean if 10 <= len(z['text']) <= 160]
+        picks = sorted(cand, key=lambda z: -len(z['text']))[:4] or clean[:3]
         summ = ['（%s）%s' % (p['who'], re.sub(r'\s+', ' ', p['text'])) for p in picks]
         # 金句：短、完整、有观点的中文句子
-        qs = [z for z in items if 10 <= len(z['text']) <= 30
+        qs = [z for z in clean if 10 <= len(z['text']) <= 30
               and CJK_RE.search(z['text'])
               and re.search(r'[。！？]$|^[^，]{4,}[，。]', z['text'])]
-        quote = (min(qs, key=lambda z: len(z['text']))['text'] if qs else '')
+        # 太短的往往没信息量（"哈哈哈哈"「最近几天都烦得很」这种），
+        # 优先挑中等长度的完整句；没有再用短的兜底。
+        band = [z for z in qs if 14 <= len(z['text']) <= 30]
+        pool = band or qs
+        quote = (min(pool, key=lambda z: len(z['text']))['text'] if pool else '')
         topics.append({
             'tag': tag,
             'title': label,
@@ -314,14 +383,18 @@ def analyze(msgs, group, hours=HOURS, name=None, shares=None):
     top_rank = rank.most_common(6)
 
     # 线索：出现"求购/报价/加好友"类意图的消息条数
-    LEAD_KW = ('有没有', '求', '收', '报价', '获取', '渠道', '谁有', '接', '私聊', '加好友', 'dd')
+    LEAD_KW = ('有没有', '求', '收', '报价', '获取', '渠道', '谁有', '接', '私聊', '加好友', 'dd',
+               '怎么弄', '分享一下', '发一下', '求教')
     leads = [x for x in texts if any(k in x['text'] for k in LEAD_KW)]
     sig = {'reply': max(1, len(leads) // 3), 'promise': 2, 'opportunity': 2, 'revive': 1}
     nlead = sum(sig.values())
 
     top_head = topics[0]['title'] if topics else '本时段无集中话题'
-    q = min([x for x in texts if 8 <= len(x['text']) <= 30],
-            key=lambda z: len(z['text']), default=None)
+    # 底部「今日一句」：全局挑一句。同样避开过短的无信息量句子。
+    qpool = [x for x in texts if 15 <= len(x['text']) <= 34 and not blocked(x['text'])]
+    if not qpool:
+        qpool = [x for x in texts if 8 <= len(x['text']) <= 34 and not blocked(x['text'])]
+    q = min(qpool, key=lambda z: len(z['text']), default=None)
 
     # 群内分享物：只留名字/大小/来源，按体积倒序
     sh = {'files': [], 'links': [], 'counts': {}}
@@ -341,12 +414,14 @@ def analyze(msgs, group, hours=HOURS, name=None, shares=None):
     return {
         'meta': {
             'group': name or group,
-            'date': dt.date.today().isoformat(),
+            'date': day or dt.date.today().isoformat(),
             'window': '%02d:00-00:00' % peak,
             'scope': '群聊文本',
-            'range': '近 %d 小时' % hours,
-            'headline': '本时段｜<b>%s</b>，共 %d 条文本' % (html.escape(top_head), len(texts)),
+            'range': '当日 00:00-23:59' if day else '近 %d 小时' % hours,
+            'headline': '%s｜<b>%s</b>，共 %d 条文本'
+                        % ('当日' if day else '本时段', html.escape(top_head), len(texts)),
             'source': '本机微信只读解密库（离线）',
+            'topic_set': set_name,
         },
         'stats': [
             {'key': '消息总量', 'value': len(msgs), 'unit': '条', 'hi': True},
@@ -426,15 +501,30 @@ def render(analysis, tag='widget', theme=DEFAULT_THEME):
     return png, hp
 
 
-def build_report(acc, group, hours=HOURS, name=None, theme=DEFAULT_THEME):
+def build_report(acc, group, hours=HOURS, name=None, theme=DEFAULT_THEME, day=None, topic_set=None):
+    """跑完整条链路：取数 → 分析 → 出图。
+
+    day 传 'YYYY-MM-DD' 时只出那一天（会自动把取数窗口放宽到覆盖该日）。
+    """
     acc = acc or default_account()
     C.ensure_dirs()
+
+    if day:
+        # 把取数窗口放宽到「从那天零点到现在 + 一天余量」
+        try:
+            t0 = time.mktime(time.strptime(day, '%Y-%m-%d'))
+        except Exception:
+            raise ValueError('日期格式应为 YYYY-MM-DD：%s' % day)
+        need = int((time.time() - t0) / 3600) + 24
+        hours = max(hours, need)
+
     msgs = dump(acc, group, hours)
-    shares = rich_items(acc, group, hours)
-    a = analyze(msgs, group, hours, name=name, shares=shares)
-    tag = re.sub(r'[^\w\u4e00-\u9fa5-]', '', a['meta']['group'])[:24] + '-' + time.strftime('%m%d')
+    shares = rich_items(acc, group, hours if not day else 24 * 3)
+    a = analyze(msgs, group, hours, name=name, shares=shares, day=day, topic_set=topic_set)
+    tag = re.sub(r'[^\w\u4e00-\u9fa5-]', '', a['meta']['group'])[:24] + '-' + \
+        (day.replace('-', '')[4:] if day else time.strftime('%m%d'))
     png, hp = render(a, tag, theme=theme)
-    return {'png': png, 'html': hp, 'analysis': a, 'count': len(msgs), 'theme': theme}
+    return {'png': png, 'html': hp, 'analysis': a, 'count': len(msgs), 'theme': theme, 'tag': tag}
 
 
 if __name__ == '__main__':
